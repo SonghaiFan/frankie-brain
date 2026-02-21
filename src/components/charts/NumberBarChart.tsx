@@ -24,6 +24,14 @@ export const NumberBarChart: React.FC<NumberBarChartProps> = ({ data, formatValu
     return hoveredIndex >= 0 && hoveredIndex < data.length ? hoveredIndex : null;
   }, [data.length, hoveredIndex]);
 
+  const topFiveNumberSet = useMemo(() => {
+    const top = [...data]
+      .sort((a, b) => b.avg - a.avg)
+      .slice(0, 5)
+      .map(d => d.number);
+    return new Set(top);
+  }, [data]);
+
   return (
     <div className="relative h-full w-full min-w-0">
       <ParentSize debounceTime={0}>
@@ -104,6 +112,23 @@ export const NumberBarChart: React.FC<NumberBarChartProps> = ({ data, formatValu
                         textAnchor="middle"
                         fill="#8a8a8a"
                         fontSize={10}
+                      >
+                        {bar.datum.number}
+                      </text>
+                    );
+                  })}
+
+                  {bars.map(bar => {
+                    if (!topFiveNumberSet.has(bar.datum.number)) return null;
+                    return (
+                      <text
+                        key={`top-${bar.datum.number}-${bar.index}`}
+                        x={bar.x + bar.width / 2}
+                        y={Math.max(bar.y - 4, 8)}
+                        textAnchor="middle"
+                        fill="#111"
+                        fontSize={10}
+                        fontWeight={600}
                       >
                         {bar.datum.number}
                       </text>

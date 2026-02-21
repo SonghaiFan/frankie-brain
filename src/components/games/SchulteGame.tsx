@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChartNoAxesColumn } from 'lucide-react';
+import { ChartNoAxesColumn, Settings } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { GameProps, GameResult, ClickEvent, TrackingPoint, SchulteTrackingData } from '../../types';
 import { ResultScreen } from '../ResultScreen';
@@ -226,13 +226,36 @@ export default function SchulteGame({ playSound, history, onComplete }: GameProp
       <div className="flex-1 flex flex-col p-4 sm:p-6 overflow-y-auto bg-surface">
         <div className="flex justify-between items-center mb-4 sm:mb-6">
            <SubHeading>{showInsights ? 'Insights' : 'Settings'}</SubHeading>
-           <button 
-             onClick={() => setShowInsights(v => !v)} 
-             className={`p-2 hover:bg-secondary rounded-full transition-colors ${showInsights ? 'text-ink' : 'text-ink-light hover:text-ink'}`}
-             title={showInsights ? 'Back to Settings' : 'Show Insights'}
+           <div
+             className="inline-flex items-center rounded-full border border-secondary bg-secondary p-0.5"
+             role="tablist"
+             aria-label="Schulte menu view switcher"
            >
-             <ChartNoAxesColumn className="w-5 h-5" />
-           </button>
+             <button
+               onClick={() => setShowInsights(false)}
+               role="tab"
+               aria-selected={!showInsights}
+               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                 !showInsights ? 'bg-surface text-ink shadow-sm' : 'text-ink-light hover:text-ink'
+               }`}
+               title="Show Settings"
+             >
+               <Settings className="h-3.5 w-3.5" />
+               <span>Settings</span>
+             </button>
+             <button
+               onClick={() => setShowInsights(true)}
+               role="tab"
+               aria-selected={showInsights}
+               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                 showInsights ? 'bg-surface text-ink shadow-sm' : 'text-ink-light hover:text-ink'
+               }`}
+               title="Show Insights"
+             >
+               <ChartNoAxesColumn className="h-3.5 w-3.5" />
+               <span>Insights</span>
+             </button>
+           </div>
         </div>
 
         {showInsights ? (
