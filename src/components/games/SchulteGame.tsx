@@ -9,6 +9,7 @@ import { Button } from '../ui/Button';
 import { Label, Mono, SubHeading } from '../ui/Typography';
 import { SchulteReplay } from '../SchulteReplay';
 import { SchulteStats } from '../SchulteStats';
+import { CartesianGrid, Line, LineChart as RechartsLineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 export default function SchulteGame({ playSound, history, onComplete }: GameProps) {
   const [gameState, setGameState] = useState<'menu' | 'countdown' | 'playing' | 'finished'>('menu');
@@ -35,7 +36,7 @@ export default function SchulteGame({ playSound, history, onComplete }: GameProp
 
   // Stats
   const stats = useMemo(() => {
-    if (!filteredHistory.length) return { best: null, average: null, data: [] };
+    if (!filteredHistory.length) return { best: null, average: null };
     
     const scores = filteredHistory.map(r => r.score);
     const best = Math.min(...scores);
@@ -237,11 +238,11 @@ export default function SchulteGame({ playSound, history, onComplete }: GameProp
           <div className="flex-1 space-y-6">
             <div>
              <Label className="mb-4 block">History ({gridSize}x{gridSize})</Label>
-             {stats.data.length > 0 ? (
+             {resultHistoryData.length > 0 ? (
                <>
                  <div className="h-36 sm:h-40 w-full mb-4 sm:mb-6 -ml-2">
                     <ResponsiveContainer width="100%" height="100%">
-                      <RechartsLineChart data={stats.data}>
+                      <RechartsLineChart data={resultHistoryData}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
                         <XAxis dataKey="index" hide />
                         <YAxis domain={['auto', 'auto']} hide />
