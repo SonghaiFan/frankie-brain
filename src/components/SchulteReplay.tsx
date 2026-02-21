@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'motion/react';
 import { Play, Pause, RotateCcw, X } from 'lucide-react';
 import { SchulteTrackingData } from '../types';
 import { Button } from './ui/Button';
-import { Label, Mono, SubHeading } from './ui/Typography';
+import { Mono, SubHeading } from './ui/Typography';
 import { formatTime } from './GameShell';
 
 interface SchulteReplayProps {
@@ -19,9 +18,6 @@ export const SchulteReplay: React.FC<SchulteReplayProps> = ({ data, onClose }) =
   const [activeNumber, setActiveNumber] = useState(1);
   
   const containerRef = useRef<HTMLDivElement>(null);
-  const requestRef = useRef<number>();
-  const startTimeRef = useRef<number>();
-  const lastTimeRef = useRef<number>(0);
   
   const totalDuration = data.clicks[data.clicks.length - 1]?.time || 0;
   const gridSize = Math.sqrt(data.grid.length);
@@ -118,18 +114,20 @@ export const SchulteReplay: React.FC<SchulteReplayProps> = ({ data, onClose }) =
     setActiveNumber(lastFound + 1);
   }, [currentTime, data.clicks]);
 
+  const progressPct = totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0;
+
   return (
-    <div className="fixed inset-0 z-50 bg-surface flex flex-col animate-in fade-in duration-200">
+    <div className="flex-1 h-full bg-surface flex flex-col animate-in fade-in duration-200">
       {/* Header */}
-      <div className="p-4 border-b border-secondary flex justify-between items-center bg-surface shadow-sm z-10">
-        <div className="flex items-center gap-4">
+      <div className="p-3 sm:p-4 border-b border-secondary flex flex-col sm:flex-row justify-between sm:items-center gap-3 bg-surface shadow-sm z-10">
+        <div className="flex items-center gap-3 flex-wrap">
           <SubHeading>Replay</SubHeading>
           <div className="flex gap-1 bg-secondary p-1 rounded-md">
             {[0.5, 1, 2, 4].map(speed => (
               <button 
                 key={speed}
                 onClick={() => setPlaybackSpeed(speed)}
-                className={`px-3 py-1 text-[10px] font-bold rounded transition-all ${
+                className={`px-2 sm:px-3 py-1 text-[10px] font-bold rounded transition-all ${
                   playbackSpeed === speed 
                     ? 'bg-primary text-white shadow-sm' 
                     : 'text-ink hover:bg-surface'
@@ -142,14 +140,14 @@ export const SchulteReplay: React.FC<SchulteReplayProps> = ({ data, onClose }) =
         </div>
         <button 
           onClick={onClose} 
-          className="p-2 hover:bg-secondary rounded-full transition-colors"
+          className="p-2 hover:bg-secondary rounded-full transition-colors self-end sm:self-auto"
         >
           <X className="w-5 h-5 text-ink" />
         </button>
       </div>
 
       {/* Grid Area */}
-      <div className="flex-1 flex items-center justify-center p-4 bg-surface relative overflow-hidden">
+      <div className="flex-1 flex items-center justify-center p-3 sm:p-4 bg-surface relative overflow-hidden">
         <div 
           ref={containerRef}
           className={`relative w-full max-w-md aspect-square grid ${gridSize >= 8 ? 'gap-px' : 'gap-1'} bg-secondary border border-secondary shadow-lg rounded-sm overflow-hidden`}
@@ -170,7 +168,7 @@ export const SchulteReplay: React.FC<SchulteReplayProps> = ({ data, onClose }) =
                       ? 'bg-surface text-ink font-bold' 
                       : 'bg-surface text-ink'
                   }
-                  ${gridSize >= 8 ? 'text-lg' : gridSize >= 6 ? 'text-xl' : 'text-2xl'}
+                  ${gridSize >= 8 ? 'text-sm sm:text-lg' : gridSize >= 6 ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl'}
                 `}
               >
                 {num}
@@ -192,13 +190,13 @@ export const SchulteReplay: React.FC<SchulteReplayProps> = ({ data, onClose }) =
       </div>
 
       {/* Controls */}
-      <div className="p-6 border-t border-secondary bg-surface pb-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="p-4 sm:p-6 border-t border-secondary bg-surface pb-6 sm:pb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5 sm:mb-6">
           <Mono className="text-sm font-medium tabular-nums">
             {formatTime(currentTime)} <span className="text-ink-lighter">/ {formatTime(totalDuration)}</span>
           </Mono>
           
-          <div className="flex gap-3">
+          <div className="flex gap-3 w-full sm:w-auto">
             <Button 
               onClick={() => {
                 setIsPlaying(false);
@@ -206,6 +204,7 @@ export const SchulteReplay: React.FC<SchulteReplayProps> = ({ data, onClose }) =
               }} 
               variant="secondary" 
               size="sm"
+              className="flex-1 sm:flex-none"
             >
               <RotateCcw className="w-4 h-4" />
             </Button>
@@ -213,7 +212,7 @@ export const SchulteReplay: React.FC<SchulteReplayProps> = ({ data, onClose }) =
               onClick={() => setIsPlaying(!isPlaying)} 
               variant="primary" 
               size="sm" 
-              className="w-32"
+              className="flex-1 sm:w-32"
             >
               {isPlaying ? (
                 <>
@@ -239,11 +238,11 @@ export const SchulteReplay: React.FC<SchulteReplayProps> = ({ data, onClose }) =
         >
           <div 
             className="absolute top-0 left-0 h-full bg-primary rounded-full transition-all duration-100"
-            style={{ width: `${(currentTime / totalDuration) * 100}%` }}
+            style={{ width: `${progressPct}%` }}
           />
           <div 
             className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-primary rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ left: `${(currentTime / totalDuration) * 100}%`, transform: 'translate(-50%, -50%)' }}
+            style={{ left: `${progressPct}%`, transform: 'translate(-50%, -50%)' }}
           />
         </div>
       </div>

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { GameResult } from '../types';
 import { SubHeading, Label, Mono, Text } from './ui/Typography';
 import { formatTime } from './GameShell';
@@ -7,10 +7,18 @@ import { formatTime } from './GameShell';
 interface SchulteStatsProps {
   history: GameResult[];
   gridSize: number;
-  onClose: () => void;
+  showTitle?: boolean;
+  className?: string;
 }
 
-export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, gridSize, onClose }) => {
+export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, gridSize, showTitle = true, className = '' }) => {
+  const formatDuration = (ms: number) => `${formatTime(ms)}s`;
+  const getPositionLabel = (index: number) => {
+    const row = Math.floor(index / gridSize) + 1;
+    const col = (index % gridSize) + 1;
+    return `R${row} C${col}`;
+  };
+
   const stats = useMemo(() => {
     const relevant = history.filter(h => h.gridSize === gridSize && h.trackingData);
     if (relevant.length === 0) return null;
@@ -57,90 +65,131 @@ export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, gridSize, o
     // Find min/max for heatmap coloring
     const minCellTime = Math.min(...cellAverages.map(c => c.avg));
     const maxCellTime = Math.max(...cellAverages.map(c => c.avg));
+    const overallCellTime = cellAverages.reduce((sum, item) => sum + item.avg, 0) / cellAverages.length;
+    const fastestCells = [...cellAverages].sort((a, b) => a.avg - b.avg).slice(0, 3);
+    const slowestCells = [...cellAverages].sort((a, b) => b.avg - a.avg).slice(0, 3);
+    const cellAverageMap = new Map(cellAverages.map(item => [item.index, item.avg]));
+    const fastestRankMap = new Map(fastestCells.map((cell, idx) => [cell.index, idx + 1]));
+    const slowestRankMap = new Map(slowestCells.map((cell, idx) => [cell.index, idx + 1]));
 
-    return { cellAverages, numberAverages, minCellTime, maxCellTime, count: relevant.length };
+    return {
+      cellAverages,
+      numberAverages,
+      minCellTime,
+      maxCellTime,
+      overallCellTime,
+      fastestCells,
+      slowestCells,
+      cellAverageMap,
+      fastestRankMap,
+      slowestRankMap,
+      count: relevant.length
+    };
   }, [history, gridSize]);
 
   if (!stats) {
     return (
-      <div className="p-8 text-center">
+      <div className="p-6 sm:p-8 text-center">
         <Text>No detailed tracking data available for this grid size.</Text>
       </div>
     );
   }
 
   // Helper for heatmap color
-  const getCellColor = (avg: number) => {
+  const getCellColor = (avg: number | undefined) => {
+    if (avg === undefined) return 'var(--color-secondary)';
     // Normalize 0-1
     const t = (avg - stats.minCellTime) / (stats.maxCellTime - stats.minCellTime || 1);
-    // Interpolate from Green (fast) to Red (slow)
-    // Or maybe White to Blue (Heatmap style)
-    // Let's use opacity of a red overlay for "hot/slow" spots?
-    // Or standard heatmap: Blue (fast) -> Red (slow)
-    
-    // Simple approach: Opacity of primary color
-    // Fast = High Opacity? No, usually Hot = Red.
-    // Let's do: Fast = Green/Blue, Slow = Red/Orange.
-    
-    // Let's stick to the app theme.
-    // Fast = Light Blue (or transparent), Slow = Dark Blue (Primary)
-    // So higher time = higher opacity of Primary color.
-    
     const opacity = 0.1 + (t * 0.9);
     return `rgba(0, 47, 167, ${opacity})`; // Klein Blue with opacity
   };
 
+  const getCompactDuration = (ms: number) => `${(ms / 1000).toFixed(gridSize >= 8 ? 1 : 2)}s`;
+
   return (
-    <div className="flex flex-col gap-8 p-6 bg-surface">
-      <div className="flex justify-between items-center">
-        <div>
-          <SubHeading>Aggregated Stats</SubHeading>
-          <Label>Based on {stats.count} games</Label>
+    <div className={`flex flex-col gap-6 sm:gap-8 p-4 sm:p-6 bg-surface ${className}`}>
+      {showTitle && (
+        <div className="flex justify-between items-center">
+          <div>
+            <SubHeading>Aggregated Stats</SubHeading>
+            <Label>Based on {stats.count} games</Label>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Heatmap Section */}
       <div>
-        <Label className="mb-4 block">Positional Heatmap (Avg Time)</Label>
+        <Label className="mb-3 block">Positional Heatmap (Avg Time per Cell)</Label>
+        <div className="grid grid-cols-3 gap-px bg-secondary border border-secondary rounded-sm overflow-hidden mb-4">
+          <div className="bg-surface p-2.5 sm:p-3 text-center">
+            <Label className="block mb-1">Fastest</Label>
+            <Mono className="text-xs sm:text-sm font-medium">{formatDuration(stats.minCellTime)}</Mono>
+          </div>
+          <div className="bg-surface p-2.5 sm:p-3 text-center">
+            <Label className="block mb-1">Typical</Label>
+            <Mono className="text-xs sm:text-sm font-medium">{formatDuration(stats.overallCellTime)}</Mono>
+          </div>
+          <div className="bg-surface p-2.5 sm:p-3 text-center">
+            <Label className="block mb-1">Slowest</Label>
+            <Mono className="text-xs sm:text-sm font-medium">{formatDuration(stats.maxCellTime)}</Mono>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[10px] uppercase tracking-widest text-ink-lighter">Faster</span>
+          <div
+            className="h-2 flex-1 rounded-full border border-secondary"
+            style={{ background: 'linear-gradient(90deg, rgba(0,47,167,0.15), rgba(0,47,167,1))' }}
+          />
+          <span className="text-[10px] uppercase tracking-widest text-ink-lighter">Slower</span>
+        </div>
         <div className="flex justify-center">
           <div 
             className={`w-full max-w-xs aspect-square grid ${gridSize >= 8 ? 'gap-px' : 'gap-1'} bg-secondary border border-secondary`}
             style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
           >
             {Array.from({ length: gridSize * gridSize }).map((_, idx) => {
-              const cellStat = stats.cellAverages.find(c => c.index === idx);
-              const avg = cellStat?.avg || 0;
+              const avg = stats.cellAverageMap.get(idx);
               const color = getCellColor(avg);
+              const fastRank = stats.fastestRankMap.get(idx);
+              const slowRank = stats.slowestRankMap.get(idx);
+              const showInlineValue = avg !== undefined && (fastRank || slowRank);
               
               return (
                 <div
                   key={idx}
-                  className="flex items-center justify-center relative group"
+                  className="relative"
                   style={{ backgroundColor: color }}
+                  title={avg === undefined ? `${getPositionLabel(idx)}: no data yet` : `${getPositionLabel(idx)}: ${formatDuration(avg)}`}
                 >
-                  <span className={`text-[10px] font-medium ${avg > (stats.maxCellTime + stats.minCellTime)/2 ? 'text-white' : 'text-ink'}`}>
-                    {Math.round(avg)}
-                  </span>
-                  
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full mb-2 hidden group-hover:block bg-ink text-white text-[10px] p-1 rounded whitespace-nowrap z-10">
-                    Avg: {formatTime(avg)}s
-                  </div>
+                  {fastRank && (
+                    <span className="absolute top-0.5 left-0.5 sm:top-1 sm:left-1 text-[8px] sm:text-[9px] font-bold leading-none px-1 py-0.5 rounded bg-white/90 text-primary">
+                      F{fastRank}
+                    </span>
+                  )}
+                  {slowRank && (
+                    <span className="absolute bottom-0.5 right-0.5 sm:bottom-1 sm:right-1 text-[8px] sm:text-[9px] font-bold leading-none px-1 py-0.5 rounded bg-ink/90 text-white">
+                      S{slowRank}
+                    </span>
+                  )}
+                  {showInlineValue && (
+                    <span className={`absolute inset-0 flex items-center justify-center text-[9px] sm:text-[10px] font-semibold ${slowRank ? 'text-white' : 'text-ink'}`}>
+                      {getCompactDuration(avg)}
+                    </span>
+                  )}
                 </div>
               );
             })}
           </div>
         </div>
-        <div className="flex justify-between text-[10px] text-ink-light mt-2 max-w-xs mx-auto">
-          <span>Fastest: {formatTime(stats.minCellTime)}s</span>
-          <span>Slowest: {formatTime(stats.maxCellTime)}s</span>
+        <div className="text-[10px] text-ink-light mt-2 max-w-xs mx-auto text-center">
+          Badge legend: `F1~F3` fastest and `S1~S3` slowest. Value is shown in-cell.
         </div>
       </div>
 
       {/* Number Stats Section */}
       <div>
         <Label className="mb-4 block">Time per Number</Label>
-        <div className="h-48 w-full">
+        <div className="h-40 sm:h-48 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={stats.numberAverages}>
               <XAxis 
@@ -154,7 +203,7 @@ export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, gridSize, o
               <Tooltip
                 cursor={{ fill: 'var(--color-secondary)' }}
                 contentStyle={{ borderRadius: '4px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '12px' }}
-                formatter={(value: number) => [`${formatTime(value)}s`, 'Avg Time']}
+                formatter={(value: number) => [formatDuration(value), 'Avg Time']}
               />
               <Bar dataKey="avg" fill="var(--color-primary)" radius={[2, 2, 0, 0]} />
             </BarChart>

@@ -80,17 +80,17 @@ export default function BrainTrainer() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex-1 flex flex-col p-8 overflow-y-auto bg-surface"
+            className="flex-1 flex flex-col p-4 sm:p-8 overflow-y-auto bg-surface"
           >
-            <div className="mb-12 mt-6">
-              <Heading className="mb-3">Select Module</Heading>
+            <div className="mb-8 mt-2 sm:mb-12 sm:mt-6">
+              <Heading className="mb-2 sm:mb-3">Select Module</Heading>
               <Label>Choose a training program</Label>
             </div>
 
-            <div className="grid gap-6">
+            <div className="grid gap-4 sm:gap-6">
               <Card onClick={() => setActiveGame('schulte')} hoverable>
-                <div className="p-6">
-                  <div className="flex justify-between items-start mb-6">
+                <div className="p-5 sm:p-6">
+                  <div className="flex justify-between items-start mb-4 sm:mb-6">
                     <Grid3X3 className="w-6 h-6 text-ink" />
                     <Label>Focus</Label>
                   </div>
@@ -100,8 +100,8 @@ export default function BrainTrainer() {
               </Card>
 
               <Card onClick={() => setActiveGame('math')} hoverable>
-                <div className="p-6">
-                  <div className="flex justify-between items-start mb-6">
+                <div className="p-5 sm:p-6">
+                  <div className="flex justify-between items-start mb-4 sm:mb-6">
                     <Calculator className="w-6 h-6 text-ink" />
                     <Label>Logic</Label>
                   </div>

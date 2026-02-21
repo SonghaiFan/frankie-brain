@@ -1,11 +1,11 @@
 import React from 'react';
 
 export const Heading = ({ children, className = '' }: { children: React.ReactNode, className?: string }) => (
-  <h2 className={`font-sans text-3xl font-bold tracking-tighter text-ink ${className}`}>{children}</h2>
+  <h2 className={`font-sans text-2xl sm:text-3xl font-bold tracking-tighter text-ink ${className}`}>{children}</h2>
 );
 
 export const SubHeading = ({ children, className = '' }: { children: React.ReactNode, className?: string }) => (
-  <h3 className={`font-sans text-xl font-medium text-ink ${className}`}>{children}</h3>
+  <h3 className={`font-sans text-lg sm:text-xl font-medium text-ink ${className}`}>{children}</h3>
 );
 
 export const Label = ({ children, className = '' }: { children: React.ReactNode, className?: string }) => (

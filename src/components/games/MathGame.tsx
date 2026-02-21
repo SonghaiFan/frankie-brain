@@ -189,8 +189,8 @@ export default function MathGame({ playSound, history, onComplete }: GameProps) 
 
   if (gameState === 'menu') {
     return (
-      <div className="flex-1 flex flex-col p-6 overflow-y-auto bg-surface">
-        <div className="flex justify-between items-center mb-6">
+      <div className="flex-1 flex flex-col p-4 sm:p-6 overflow-y-auto bg-surface">
+        <div className="flex justify-between items-center mb-4 sm:mb-6">
            <SubHeading>Settings</SubHeading>
            <button onClick={() => setShowHistory(!showHistory)} className="p-2 hover:bg-secondary rounded-full">
              <History className="w-5 h-5 text-ink-light" />
@@ -202,7 +202,7 @@ export default function MathGame({ playSound, history, onComplete }: GameProps) 
              <Label className="mb-4 block">History ({difficulty})</Label>
              {stats.data.length > 0 ? (
                <>
-                 <div className="h-40 w-full mb-6 -ml-2">
+                 <div className="h-36 sm:h-40 w-full mb-4 sm:mb-6 -ml-2">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={stats.data}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
@@ -226,7 +226,7 @@ export default function MathGame({ playSound, history, onComplete }: GameProps) 
                  </div>
                  <div className="space-y-px bg-secondary border border-secondary rounded-sm overflow-hidden">
                     {history.filter(h => h.difficulty === difficulty).slice(0, 10).map(r => (
-                      <div key={r.id} className="flex justify-between p-3 bg-surface text-xs">
+                      <div key={r.id} className="flex justify-between p-2.5 sm:p-3 bg-surface text-xs">
                         <span className="text-ink-lighter">{format(r.date, 'MM/dd HH:mm')}</span>
                         <Mono className="font-medium">{r.score} pts</Mono>
                       </div>
@@ -234,21 +234,21 @@ export default function MathGame({ playSound, history, onComplete }: GameProps) 
                  </div>
                </>
              ) : (
-               <p className="text-center text-ink-lighter text-sm mt-8">No games played yet.</p>
+               <p className="text-center text-ink-lighter text-sm mt-6 sm:mt-8">No games played yet.</p>
              )}
           </div>
         ) : (
-          <div className="flex-1 flex flex-col justify-center space-y-8">
+          <div className="flex-1 flex flex-col justify-center space-y-6 sm:space-y-8">
             <div>
               <Label className="mb-4 block text-center">
                 Difficulty
               </Label>
-              <div className="flex justify-center gap-2">
+              <div className="flex justify-center gap-2 flex-wrap">
                 {(['easy', 'medium', 'hard'] as Difficulty[]).map((d) => (
                   <button
                     key={d}
                     onClick={() => setDifficulty(d)}
-                    className={`px-4 py-2 rounded-full font-medium text-xs uppercase tracking-wider transition-all duration-200 ${
+                    className={`px-3 sm:px-4 py-2 rounded-full font-medium text-[11px] sm:text-xs uppercase tracking-wider transition-all duration-200 ${
                       difficulty === d ? 'bg-primary text-white shadow-sm' : 'bg-secondary text-ink-light hover:bg-secondary-hover'
                     }`}
                   >
@@ -259,15 +259,15 @@ export default function MathGame({ playSound, history, onComplete }: GameProps) 
             </div>
 
             <div className="grid grid-cols-2 gap-px bg-secondary border border-secondary rounded-md overflow-hidden">
-              <div className="bg-surface p-4 text-left">
+              <div className="bg-surface p-3 sm:p-4 text-left">
                 <Label className="mb-1 block">Best Score</Label>
-                <Mono className="text-lg font-medium">
+                <Mono className="text-base sm:text-lg font-medium">
                   {stats.best !== null ? stats.best : '--'}
                 </Mono>
               </div>
-              <div className="bg-surface p-4 text-left">
+              <div className="bg-surface p-3 sm:p-4 text-left">
                 <Label className="mb-1 block">Avg Score</Label>
-                <Mono className="text-lg font-medium">
+                <Mono className="text-base sm:text-lg font-medium">
                   {stats.average !== null ? Math.round(stats.average) : '--'}
                 </Mono>
               </div>
@@ -284,19 +284,19 @@ export default function MathGame({ playSound, history, onComplete }: GameProps) 
 
   return (
     <div className="flex-1 flex flex-col h-full bg-surface">
-      <div className="p-4 flex justify-between items-center border-b border-secondary bg-surface">
-         <Mono className="text-xl font-medium tabular-nums">{timeLeft}s</Mono>
-         <Label>Score: {score}</Label>
+      <div className="p-3 sm:p-4 flex justify-between items-center border-b border-secondary bg-surface">
+         <Mono className="text-lg sm:text-xl font-medium tabular-nums">{timeLeft}s</Mono>
+         <Label className="text-[9px] sm:text-[10px]">Score: {score}</Label>
       </div>
       
-      <div className="flex-1 flex flex-col items-center justify-center p-6 bg-surface">
-        <Heading className="mb-12 text-5xl">{problem?.question}</Heading>
-        <div className="grid grid-cols-2 gap-4 w-full max-w-xs">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 bg-surface">
+        <Heading className="mb-8 sm:mb-12 text-4xl sm:text-5xl text-center">{problem?.question}</Heading>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full max-w-xs">
           {problem?.options.map((opt, i) => (
             <button
               key={i}
-              onMouseDown={() => handleAnswer(opt)}
-              className={`py-6 text-2xl font-medium rounded-[4px] transition-colors
+              onPointerDown={() => handleAnswer(opt)}
+              className={`py-4 sm:py-6 text-xl sm:text-2xl font-medium rounded-[4px] transition-colors touch-manipulation
                 ${errorOption === opt 
                   ? 'bg-[var(--color-error)] text-white' 
                   : 'bg-secondary hover:bg-secondary-hover active:bg-primary active:text-white text-ink'

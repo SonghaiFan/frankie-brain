@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { LineChart as RechartsLineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { formatTime } from './GameShell';
 import { GameResult } from '../types';
 import { Button } from './ui/Button';
@@ -15,6 +16,8 @@ interface ResultScreenProps {
   onShowReplay?: () => void;
   isRecord: boolean;
   unit?: string;
+  historyData?: Array<{ index: number; value: number }>;
+  historyLabel?: string;
 }
 
 export const ResultScreen: React.FC<ResultScreenProps> = ({ 
@@ -25,7 +28,9 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   onReplay, 
   onShowReplay,
   isRecord,
-  unit = 's'
+  unit = 's',
+  historyData = [],
+  historyLabel = 'History'
 }) => {
   const isTime = unit === 's';
   const scoreDisplay = isTime ? formatTime(result.score) : result.score;
@@ -49,23 +54,23 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-surface z-10"
+      className="absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-8 bg-surface z-10"
     >
       {isRecord && (
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          className="absolute top-12 right-12 bg-[var(--color-error)] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest"
+          className="absolute top-4 right-4 sm:top-12 sm:right-12 bg-[var(--color-error)] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest"
         >
           Record
         </motion.div>
       )}
 
-      <div className="text-center mb-12">
+      <div className="text-center mb-8 sm:mb-12">
         <Label className="mb-2 block">
           {isTime ? 'Time' : 'Score'}
         </Label>
-        <div className="text-6xl font-mono font-medium text-ink tracking-tighter">
+        <div className="text-5xl sm:text-6xl font-mono font-medium text-ink tracking-tighter">
           {scoreDisplay}
         </div>
         
@@ -91,25 +96,53 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-px bg-secondary border border-secondary w-full mb-12 rounded-sm overflow-hidden">
-        <div className="bg-surface p-4 text-center">
+      <div className="grid grid-cols-2 gap-px bg-secondary border border-secondary w-full mb-8 sm:mb-12 rounded-sm overflow-hidden">
+        <div className="bg-surface p-3 sm:p-4 text-center">
           <Label className="mb-1 block">
             {result.gameType === 'schulte' ? 'Grid' : 'Mode'}
           </Label>
-          <div className="font-medium text-lg text-ink capitalize">
+          <div className="font-medium text-base sm:text-lg text-ink capitalize">
             {result.gameType === 'schulte' ? `${result.gridSize}x${result.gridSize}` : 
              result.gameType === 'math' ? result.difficulty : 'Adaptive'}
           </div>
         </div>
-        <div className="bg-surface p-4 text-center">
+        <div className="bg-surface p-3 sm:p-4 text-center">
           <Label className="mb-1 block">Errors</Label>
-          <div className={`font-medium text-lg ${result.mistakes > 0 ? 'text-[var(--color-error)]' : 'text-ink'}`}>
+          <div className={`font-medium text-base sm:text-lg ${result.mistakes > 0 ? 'text-[var(--color-error)]' : 'text-ink'}`}>
             {result.mistakes}
           </div>
         </div>
       </div>
 
-      <div className="flex gap-4 w-full mt-auto">
+      {historyData.length > 0 && (
+        <div className="w-full mb-8 sm:mb-10">
+          <Label className="mb-3 block">{historyLabel}</Label>
+          <div className="h-36 sm:h-40 w-full -ml-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <RechartsLineChart data={historyData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
+                <XAxis dataKey="index" hide />
+                <YAxis domain={['auto', 'auto']} hide />
+                <Tooltip
+                  contentStyle={{ borderRadius: '4px', border: '1px solid #e0e0e0', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', fontSize: '12px', fontFamily: 'monospace' }}
+                  labelStyle={{ display: 'none' }}
+                  formatter={(value: number) => [isTime ? `${value}s` : `${Math.round(value)}`, isTime ? 'Time' : 'Score']}
+                />
+                <Line
+                  type="step"
+                  dataKey="value"
+                  stroke="#111"
+                  strokeWidth={1.5}
+                  dot={{ r: 2, fill: '#111' }}
+                  activeDot={{ r: 4, fill: '#002FA7' }}
+                />
+              </RechartsLineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full mt-auto">
         <Button
           onClick={onMenu}
           variant="secondary"
@@ -130,7 +163,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           onClick={onReplay}
           variant="primary"
           fullWidth
-          className="flex-[2]"
+          className="sm:flex-[2]"
         >
           Again
         </Button>
