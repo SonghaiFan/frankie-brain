@@ -5,6 +5,8 @@ import { GameShell } from './GameShell';
 import { GameType, GameResult } from '../types';
 import SchulteGame from './games/SchulteGame';
 import MathGame from './games/MathGame';
+import { Card, CardContent } from './ui/Card';
+import { Heading, Label, SubHeading, Text } from './ui/Typography';
 
 export default function BrainTrainer() {
   const [activeGame, setActiveGame] = useState<GameType | null>(null);
@@ -78,39 +80,35 @@ export default function BrainTrainer() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex-1 flex flex-col p-8 overflow-y-auto"
+            className="flex-1 flex flex-col p-8 overflow-y-auto bg-surface"
           >
-            <div className="mb-8 mt-4">
-              <h2 className="text-3xl font-semibold mb-2 tracking-tighter text-[#111]">Select Module</h2>
-              <p className="text-[#666] text-xs font-medium uppercase tracking-wider">
-                Choose a training program
-              </p>
+            <div className="mb-12 mt-6">
+              <Heading className="mb-3">Select Module</Heading>
+              <Label>Choose a training program</Label>
             </div>
 
-            <div className="grid gap-4">
-              <button
-                onClick={() => setActiveGame('schulte')}
-                className="group relative overflow-hidden bg-[#e0e0e0] hover:bg-[#dcdcdc] p-6 rounded-md text-left transition-colors active:scale-[0.99]"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <Grid3X3 className="w-6 h-6 text-[#111]" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#888]">Focus</span>
+            <div className="grid gap-6">
+              <Card onClick={() => setActiveGame('schulte')} hoverable>
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-6">
+                    <Grid3X3 className="w-6 h-6 text-ink" />
+                    <Label>Focus</Label>
+                  </div>
+                  <SubHeading className="mb-2">Schulte Grid</SubHeading>
+                  <Text>Train peripheral vision and attention span.</Text>
                 </div>
-                <h3 className="text-xl font-medium text-[#111] mb-1">Schulte Grid</h3>
-                <p className="text-sm text-[#666]">Train peripheral vision and attention span.</p>
-              </button>
+              </Card>
 
-              <button
-                onClick={() => setActiveGame('math')}
-                className="group relative overflow-hidden bg-[#e0e0e0] hover:bg-[#dcdcdc] p-6 rounded-md text-left transition-colors active:scale-[0.99]"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <Calculator className="w-6 h-6 text-[#111]" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#888]">Logic</span>
+              <Card onClick={() => setActiveGame('math')} hoverable>
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-6">
+                    <Calculator className="w-6 h-6 text-ink" />
+                    <Label>Logic</Label>
+                  </div>
+                  <SubHeading className="mb-2">Quick Math</SubHeading>
+                  <Text>Speed calculation and mental arithmetic.</Text>
                 </div>
-                <h3 className="text-xl font-medium text-[#111] mb-1">Quick Math</h3>
-                <p className="text-sm text-[#666]">Speed calculation and mental arithmetic.</p>
-              </button>
+              </Card>
             </div>
           </motion.div>
         ) : (
@@ -119,7 +117,7 @@ export default function BrainTrainer() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="flex-1 flex flex-col h-full overflow-hidden"
+            className="flex-1 flex flex-col h-full overflow-hidden bg-surface"
           >
             {activeGame === 'schulte' ? (
               <SchulteGame 

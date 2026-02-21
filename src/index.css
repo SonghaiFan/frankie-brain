@@ -4,4 +4,22 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Design System Colors */
+  --color-primary: #002FA7; /* Klein Blue */
+  --color-primary-hover: #002380;
+  
+  --color-surface: #F4F4F4;
+  --color-surface-hover: #EAEAEA;
+  
+  --color-secondary: #E0E0E0;
+  --color-secondary-hover: #D4D4D4;
+  
+  --color-bg-app: #E8E8E8;
+  
+  --color-ink: #111111;
+  --color-ink-light: #666666;
+  --color-ink-lighter: #888888;
+
+  --color-error: #DC2626;
 }
