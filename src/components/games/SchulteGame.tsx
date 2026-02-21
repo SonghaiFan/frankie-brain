@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChartNoAxesColumn, Settings } from 'lucide-react';
+import { ChartNoAxesColumn, Crosshair, Settings, Shuffle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { GameProps, GameResult, ClickEvent, TrackingPoint, SchulteTrackingData } from '../../types';
 import { ResultScreen } from '../ResultScreen';
@@ -13,6 +13,7 @@ import { SchulteStats } from '../SchulteStats';
 export default function SchulteGame({ playSound, history, onComplete }: GameProps) {
   const [gameState, setGameState] = useState<'menu' | 'countdown' | 'playing' | 'finished'>('menu');
   const [gridSize, setGridSize] = useState(5);
+  const [trainingMode, setTrainingMode] = useState<'classic' | 'targeted'>('classic');
   const [numbers, setNumbers] = useState<number[]>([]);
   const [currentNumber, setCurrentNumber] = useState(1);
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -61,7 +62,86 @@ export default function SchulteGame({ playSound, history, onComplete }: GameProp
     [historyForResult]
   );
 
-  const generateGrid = (size: number) => {
+  const historyForTraining = useMemo(() => {
+    if (!lastResult || lastResult.gameType !== 'schulte' || lastResult.gridSize !== gridSize) {
+      return filteredHistory;
+    }
+    const exists = filteredHistory.some(item => item.id === lastResult.id);
+    return exists ? filteredHistory : [lastResult, ...filteredHistory];
+  }, [filteredHistory, lastResult, gridSize]);
+
+  const weaknessProfile = useMemo(() => {
+    const relevant = historyForTraining.filter(game => game.trackingData);
+    if (!relevant.length) {
+      return {
+        weakestNumbers: [] as number[],
+        weakestCells: [] as number[]
+      };
+    }
+
+    const cellTimes: Record<number, number[]> = {};
+    const numberTimes: Record<number, number[]> = {};
+
+    relevant.forEach(game => {
+      if (!game.trackingData) return;
+      let lastTime = 0;
+      const sortedClicks = [...game.trackingData.clicks].sort((a, b) => a.number - b.number);
+
+      sortedClicks.forEach(click => {
+        if (click.isError) return;
+        const interval = click.time - lastTime;
+        lastTime = click.time;
+
+        if (!cellTimes[click.cellIndex]) cellTimes[click.cellIndex] = [];
+        cellTimes[click.cellIndex].push(interval);
+
+        if (!numberTimes[click.number]) numberTimes[click.number] = [];
+        numberTimes[click.number].push(interval);
+      });
+    });
+
+    const weakestNumbers = Object.entries(numberTimes)
+      .map(([number, times]) => ({
+        number: Number(number),
+        avg: times.reduce((sum, v) => sum + v, 0) / times.length
+      }))
+      .sort((a, b) => b.avg - a.avg)
+      .slice(0, 5)
+      .map(item => item.number);
+
+    const weakestCells = Object.entries(cellTimes)
+      .map(([index, times]) => ({
+        index: Number(index),
+        avg: times.reduce((sum, v) => sum + v, 0) / times.length
+      }))
+      .sort((a, b) => b.avg - a.avg)
+      .slice(0, 5)
+      .map(item => item.index);
+
+    return { weakestNumbers, weakestCells };
+  }, [historyForTraining]);
+
+  const targetedNumbers = useMemo(() => {
+    const maxNumber = gridSize * gridSize;
+    return weaknessProfile.weakestNumbers.filter(number => number >= 1 && number <= maxNumber);
+  }, [weaknessProfile.weakestNumbers, gridSize]);
+
+  const targetedCells = useMemo(() => {
+    const maxCellIndex = (gridSize * gridSize) - 1;
+    return weaknessProfile.weakestCells.filter(index => index >= 0 && index <= maxCellIndex);
+  }, [weaknessProfile.weakestCells, gridSize]);
+
+  const canUseTargetedMode = targetedNumbers.length > 0 && targetedCells.length > 0;
+
+  useEffect(() => {
+    if (trainingMode === 'targeted' && !canUseTargetedMode) {
+      setTrainingMode('classic');
+    }
+  }, [trainingMode, canUseTargetedMode]);
+
+  const formatCellLabel = (index: number) => `R${Math.floor(index / gridSize) + 1}C${(index % gridSize) + 1}`;
+
+  const generateClassicGrid = (size: number) => {
     const count = size * size;
     const nums = Array.from({ length: count }, (_, i) => i + 1);
     for (let i = nums.length - 1; i > 0; i--) {
@@ -71,8 +151,29 @@ export default function SchulteGame({ playSound, history, onComplete }: GameProp
     return nums;
   };
 
+  const generateTargetedGrid = (size: number) => {
+    const nums = generateClassicGrid(size);
+    const count = size * size;
+    const weakNumbers = Array.from(new Set(targetedNumbers.filter(number => number <= count)));
+    const weakCells = Array.from(new Set(targetedCells.filter(index => index < count)));
+    const pairCount = Math.min(weakNumbers.length, weakCells.length);
+
+    for (let i = 0; i < pairCount; i++) {
+      const targetNumber = weakNumbers[i];
+      const targetCell = weakCells[i];
+      const currentIndex = nums.indexOf(targetNumber);
+      if (currentIndex === -1 || currentIndex === targetCell) continue;
+      [nums[targetCell], nums[currentIndex]] = [nums[currentIndex], nums[targetCell]];
+    }
+
+    return nums;
+  };
+
   const startGame = () => {
-    setNumbers(generateGrid(gridSize));
+    const nextGrid = trainingMode === 'targeted' && canUseTargetedMode
+      ? generateTargetedGrid(gridSize)
+      : generateClassicGrid(gridSize);
+    setNumbers(nextGrid);
     setCurrentNumber(1);
     setMistakes(0);
     setCountdownValue(3);
@@ -288,6 +389,32 @@ export default function SchulteGame({ playSound, history, onComplete }: GameProp
               </div>
             </div>
 
+            <div>
+              <Label className="mb-4 block text-center">Training Mode</Label>
+              <div className="inline-flex w-full items-center rounded-full border border-secondary bg-secondary p-0.5">
+                <button
+                  onClick={() => setTrainingMode('classic')}
+                  className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-colors ${
+                    trainingMode === 'classic' ? 'bg-surface text-ink shadow-sm' : 'text-ink-light hover:text-ink'
+                  }`}
+                >
+                  <Shuffle className="h-3.5 w-3.5" />
+                  <span>Classic</span>
+                </button>
+                <button
+                  onClick={() => setTrainingMode('targeted')}
+                  disabled={!canUseTargetedMode}
+                  className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-colors ${
+                    trainingMode === 'targeted' ? 'bg-surface text-ink shadow-sm' : 'text-ink-light hover:text-ink'
+                  } ${!canUseTargetedMode ? 'cursor-not-allowed opacity-50' : ''}`}
+                >
+                  <Crosshair className="h-3.5 w-3.5" />
+                  <span>Targeted</span>
+                </button>
+              </div>
+        
+            </div>
+
             <div className="grid grid-cols-2 gap-px bg-secondary border border-secondary rounded-md overflow-hidden">
               <div className="bg-surface p-3 sm:p-4 text-left">
                 <Label className="mb-1 block">Best</Label>
@@ -304,7 +431,7 @@ export default function SchulteGame({ playSound, history, onComplete }: GameProp
             </div>
 
             <Button onClick={startGame} fullWidth size="lg">
-              Start
+              {trainingMode === 'targeted' && canUseTargetedMode ? 'Start Targeted' : 'Start'}
             </Button>
           </div>
         )}
@@ -316,9 +443,17 @@ export default function SchulteGame({ playSound, history, onComplete }: GameProp
   return (
     <div className="flex-1 flex flex-col h-full bg-surface relative">
       <div className="p-3 sm:p-4 flex justify-center border-b border-secondary bg-surface">
-        <Mono className="text-xl sm:text-2xl font-medium tabular-nums">
-          {formatTime(currentTime)}
-        </Mono>
+        <div className="flex items-center gap-2">
+          <Mono className="text-xl sm:text-2xl font-medium tabular-nums">
+            {formatTime(currentTime)}
+          </Mono>
+          {trainingMode === 'targeted' && canUseTargetedMode && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-secondary bg-secondary px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-ink-light">
+              <Crosshair className="h-3 w-3" />
+              Targeted
+            </span>
+          )}
+        </div>
       </div>
       
       <div className="flex-1 flex items-center justify-center p-3 sm:p-4 bg-surface relative overflow-hidden">
