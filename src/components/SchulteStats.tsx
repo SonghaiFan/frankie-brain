@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { GameResult } from '../types';
 import { SubHeading, Label, Mono, Text } from './ui/Typography';
 import { formatTime } from './GameShell';
+import { NumberBarChart } from './charts/NumberBarChart';
 
 interface SchulteStatsProps {
   history: GameResult[];
@@ -189,25 +189,8 @@ export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, gridSize, s
       {/* Number Stats Section */}
       <div>
         <Label className="mb-4 block">Time per Number</Label>
-        <div className="h-40 sm:h-48 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={stats.numberAverages}>
-              <XAxis 
-                dataKey="number" 
-                tick={{ fontSize: 10 }} 
-                interval={gridSize > 5 ? 1 : 0}
-              />
-              <YAxis 
-                hide 
-              />
-              <Tooltip
-                cursor={{ fill: 'var(--color-secondary)' }}
-                contentStyle={{ borderRadius: '4px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '12px' }}
-                formatter={(value: number) => [formatDuration(value), 'Avg Time']}
-              />
-              <Bar dataKey="avg" fill="var(--color-primary)" radius={[2, 2, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="h-40 sm:h-48 w-full min-w-0">
+          <NumberBarChart data={stats.numberAverages} formatValue={formatDuration} />
         </div>
       </div>
     </div>

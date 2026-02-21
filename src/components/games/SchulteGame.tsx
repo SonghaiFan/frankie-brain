@@ -9,7 +9,6 @@ import { Button } from '../ui/Button';
 import { Label, Mono, SubHeading } from '../ui/Typography';
 import { SchulteReplay } from '../SchulteReplay';
 import { SchulteStats } from '../SchulteStats';
-import { CartesianGrid, Line, LineChart as RechartsLineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 export default function SchulteGame({ playSound, history, onComplete }: GameProps) {
   const [gameState, setGameState] = useState<'menu' | 'countdown' | 'playing' | 'finished'>('menu');
@@ -216,6 +215,8 @@ export default function SchulteGame({ playSound, history, onComplete }: GameProp
         onShowReplay={lastResult.trackingData ? () => setReplayData(lastResult.trackingData!) : undefined}
         isRecord={!stats.best || lastResult.score < stats.best}
         unit="s"
+        historyData={resultHistoryData}
+        historyLabel={`History (${gridSize}x${gridSize})`}
       />
     );
   }
@@ -236,37 +237,6 @@ export default function SchulteGame({ playSound, history, onComplete }: GameProp
 
         {showInsights ? (
           <div className="flex-1 space-y-6">
-            <div>
-             <Label className="mb-4 block">History ({gridSize}x{gridSize})</Label>
-             {resultHistoryData.length > 0 ? (
-               <>
-                 <div className="h-36 sm:h-40 w-full mb-4 sm:mb-6 -ml-2">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RechartsLineChart data={resultHistoryData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
-                        <XAxis dataKey="index" hide />
-                        <YAxis domain={['auto', 'auto']} hide />
-                        <Tooltip 
-                          contentStyle={{ borderRadius: '4px', border: '1px solid #e0e0e0', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', fontSize: '12px', fontFamily: 'monospace' }}
-                          labelStyle={{ display: 'none' }}
-                          formatter={(value: number) => [`${value}s`, 'Time']}
-                        />
-                        <Line 
-                          type="step" 
-                          dataKey="value" 
-                          stroke="#111" 
-                          strokeWidth={1.5} 
-                          dot={{ r: 2, fill: '#111' }} 
-                          activeDot={{ r: 4, fill: '#002FA7' }} 
-                        />
-                      </RechartsLineChart>
-                    </ResponsiveContainer>
-                 </div>
-               </>
-             ) : (
-               <p className="text-center text-ink-lighter text-sm mt-6 sm:mt-8">No games played yet.</p>
-             )}
-            </div>
             <SchulteStats
               history={history}
               gridSize={gridSize}

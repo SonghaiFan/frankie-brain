@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { History } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { format } from 'date-fns';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { GameProps, GameResult, Difficulty } from '../../types';
 import { ResultScreen } from '../ResultScreen';
 import { Button } from '../ui/Button';
 import { Label, Mono, SubHeading, Heading } from '../ui/Typography';
+import { HistoryStepChart } from '../charts/HistoryStepChart';
 
 type MathOperation = '+' | '-' | '*' | '/';
 
@@ -202,27 +202,12 @@ export default function MathGame({ playSound, history, onComplete }: GameProps) 
              <Label className="mb-4 block">History ({difficulty})</Label>
              {stats.data.length > 0 ? (
                <>
-                 <div className="h-36 sm:h-40 w-full mb-4 sm:mb-6 -ml-2">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={stats.data}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
-                        <XAxis dataKey="index" hide />
-                        <YAxis domain={['auto', 'auto']} hide />
-                        <Tooltip 
-                          contentStyle={{ borderRadius: '4px', border: '1px solid #e0e0e0', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', fontSize: '12px', fontFamily: 'monospace' }}
-                          labelStyle={{ display: 'none' }}
-                          formatter={(value: number) => [`${value}`, 'Score']}
-                        />
-                        <Line 
-                          type="step" 
-                          dataKey="value" 
-                          stroke="#111" 
-                          strokeWidth={1.5} 
-                          dot={{ r: 2, fill: '#111' }} 
-                          activeDot={{ r: 4, fill: '#002FA7' }} 
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
+                 <div className="h-36 sm:h-40 w-full mb-4 sm:mb-6 -ml-2 min-w-0">
+                    <HistoryStepChart
+                      data={stats.data}
+                      formatValue={value => `${Math.round(value)}`}
+                      seriesLabel="Score"
+                    />
                  </div>
                  <div className="space-y-px bg-secondary border border-secondary rounded-sm overflow-hidden">
                     {history.filter(h => h.difficulty === difficulty).slice(0, 10).map(r => (
