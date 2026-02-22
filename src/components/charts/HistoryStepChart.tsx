@@ -1,10 +1,10 @@
-import React, { useMemo, useState } from 'react';
-import { curveStepAfter } from '@visx/curve';
-import { GridRows } from '@visx/grid';
+import React, { useMemo, useState, useId } from 'react';
+import { curveMonotoneX } from '@visx/curve';
+import { GridColumns, GridRows } from '@visx/grid';
 import { Group } from '@visx/group';
 import { ParentSize } from '@visx/responsive';
-import { scaleLinear, scalePoint } from '@visx/scale';
-import { LinePath } from '@visx/shape';
+import { scaleLinear } from '@visx/scale';
+import { AreaClosed, Line, LinePath } from '@visx/shape';
 
 export interface HistoryPoint {
   index: number;
@@ -17,10 +17,11 @@ interface HistoryStepChartProps {
   seriesLabel: string;
 }
 
-const CHART_MARGIN = { top: 8, right: 8, bottom: 8, left: 8 };
+const CHART_MARGIN = { top: 10, right: 10, bottom: 10, left: 10 };
 
 export const HistoryStepChart: React.FC<HistoryStepChartProps> = ({ data, formatValue, seriesLabel }) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const areaGradientId = useId().replace(/:/g, '');
 
   const safeHoveredIndex = useMemo(() => {
     if (hoveredIndex === null) return null;
@@ -39,12 +40,11 @@ export const HistoryStepChart: React.FC<HistoryStepChartProps> = ({ data, format
           const minValue = Math.min(...values);
           const maxValue = Math.max(...values);
           const span = maxValue - minValue;
-          const pad = span > 0 ? span * 0.1 : Math.max(Math.abs(maxValue) * 0.1, 1);
+          const pad = span > 0 ? span * 0.12 : Math.max(Math.abs(maxValue) * 0.1, 1);
 
-          const xScale = scalePoint<number>({
-            domain: data.map(d => d.index),
-            range: [0, innerWidth],
-            padding: 0.5
+          const xScale = scaleLinear<number>({
+            domain: [0, Math.max(data.length - 1, 1)],
+            range: [0, innerWidth]
           });
 
           const yScale = scaleLinear<number>({
@@ -53,72 +53,135 @@ export const HistoryStepChart: React.FC<HistoryStepChartProps> = ({ data, format
             nice: true
           });
 
-          const points = data.map((datum, i) => ({
-            datum,
-            index: i,
-            x: xScale(datum.index) ?? 0,
-            y: yScale(datum.value)
-          }));
+          const points = data.map((datum, i) => {
+            const xIndex = data.length > 1 ? i : 0;
+            return {
+              datum,
+              index: i,
+              x: xScale(xIndex),
+              y: yScale(datum.value)
+            };
+          });
 
           const activePoint = safeHoveredIndex === null ? null : points[safeHoveredIndex];
+
+          const findClosestPointIndex = (localX: number) => {
+            let bestIdx = 0;
+            let bestDist = Number.POSITIVE_INFINITY;
+            for (let i = 0; i < points.length; i += 1) {
+              const dist = Math.abs(points[i].x - localX);
+              if (dist < bestDist) {
+                bestDist = dist;
+                bestIdx = i;
+              }
+            }
+            return bestIdx;
+          };
+
+          const handleMove = (clientX: number, rect: DOMRect) => {
+            const localX = Math.max(0, Math.min(innerWidth, clientX - rect.left - CHART_MARGIN.left));
+            setHoveredIndex(findClosestPointIndex(localX));
+          };
 
           return (
             <>
               <svg width={width} height={height} aria-label={`${seriesLabel} history`}>
+                <defs>
+                  <linearGradient id={areaGradientId} x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#002FA7" stopOpacity={0.32} />
+                    <stop offset="100%" stopColor="#002FA7" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
                 <Group left={CHART_MARGIN.left} top={CHART_MARGIN.top}>
                   <GridRows
                     scale={yScale}
                     width={innerWidth}
                     numTicks={4}
-                    stroke="#e0e0e0"
-                    strokeDasharray="3 3"
+                    stroke="#d6e0f5"
+                    strokeDasharray="2 4"
+                    pointerEvents="none"
+                  />
+                  <GridColumns
+                    scale={xScale}
+                    height={innerHeight}
+                    numTicks={4}
+                    stroke="#eef3ff"
+                    strokeDasharray="2 6"
+                    pointerEvents="none"
+                  />
+                  <AreaClosed
+                    data={points}
+                    x={d => d.x}
+                    y={d => d.y}
+                    y0={innerHeight}
+                    curve={curveMonotoneX}
+                    fill={`url(#${areaGradientId})`}
                   />
                   <LinePath
-                    data={data}
-                    x={d => xScale(d.index) ?? 0}
-                    y={d => yScale(d.value)}
-                    curve={curveStepAfter}
-                    stroke="#111"
-                    strokeWidth={1.5}
+                    data={points}
+                    x={d => d.x}
+                    y={d => d.y}
+                    curve={curveMonotoneX}
+                    stroke="#002FA7"
+                    strokeWidth={2}
                     fill="none"
                   />
-                  {points.map(point => (
-                    <circle
-                      key={`${point.datum.index}-${point.index}`}
-                      cx={point.x}
-                      cy={point.y}
-                      r={activePoint?.index === point.index ? 4 : 2}
-                      fill={activePoint?.index === point.index ? '#002FA7' : '#111'}
-                    />
-                  ))}
-                  {points.map(point => (
-                    <circle
-                      key={`hit-${point.datum.index}-${point.index}`}
-                      cx={point.x}
-                      cy={point.y}
-                      r={12}
-                      fill="transparent"
-                      onMouseEnter={() => setHoveredIndex(point.index)}
-                      onMouseLeave={() => setHoveredIndex(null)}
-                      onTouchStart={() => setHoveredIndex(point.index)}
-                      onTouchEnd={() => setHoveredIndex(null)}
-                    />
-                  ))}
+                  {activePoint ? (
+                    <>
+                      <Line
+                        from={{ x: activePoint.x, y: 0 }}
+                        to={{ x: activePoint.x, y: innerHeight }}
+                        stroke="#7b9ae3"
+                        strokeWidth={1.5}
+                        strokeDasharray="4 3"
+                        pointerEvents="none"
+                      />
+                      <circle
+                        cx={activePoint.x}
+                        cy={activePoint.y}
+                        r={5}
+                        fill="#002FA7"
+                        stroke="#fff"
+                        strokeWidth={2}
+                        pointerEvents="none"
+                      />
+                    </>
+                  ) : null}
+                  <rect
+                    x={0}
+                    y={0}
+                    width={innerWidth}
+                    height={innerHeight}
+                    fill="transparent"
+                    onMouseMove={event => handleMove(event.clientX, event.currentTarget.getBoundingClientRect())}
+                    onMouseLeave={() => setHoveredIndex(null)}
+                    onTouchStart={event => {
+                      const touch = event.touches[0];
+                      if (!touch) return;
+                      handleMove(touch.clientX, event.currentTarget.getBoundingClientRect());
+                    }}
+                    onTouchMove={event => {
+                      const touch = event.touches[0];
+                      if (!touch) return;
+                      handleMove(touch.clientX, event.currentTarget.getBoundingClientRect());
+                    }}
+                    onTouchEnd={() => setHoveredIndex(null)}
+                  />
                 </Group>
               </svg>
-              {activePoint && (
+              {activePoint ? (
                 <div
-                  className="pointer-events-none absolute z-10 rounded border border-[#e0e0e0] bg-white px-2 py-1 font-mono text-[12px] shadow-[0_2px_10px_rgba(0,0,0,0.05)]"
+                  className="pointer-events-none absolute z-10 rounded-sm border border-[#d6e0f5] bg-white px-2 py-1 font-mono text-[12px] shadow-[0_4px_12px_rgba(0,47,167,0.12)]"
                   style={{
                     left: activePoint.x + CHART_MARGIN.left,
                     top: activePoint.y + CHART_MARGIN.top,
-                    transform: 'translate(8px, -110%)'
+                    transform: 'translate(10px, -120%)'
                   }}
                 >
-                  <span>{formatValue(activePoint.datum.value)}</span>
+                  <span className="text-ink">{formatValue(activePoint.datum.value)}</span>
                   <span className="ml-1 text-ink-light">{seriesLabel}</span>
                 </div>
-              )}
+              ) : null}
             </>
           );
         }}

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Difficulty, GameResult, MathOperation } from '../types';
+import { HistorySection } from './HistorySection';
 import { HistoryStepChart } from './charts/HistoryStepChart';
 import { Label, Mono, SubHeading, Text } from './ui/Typography';
 
@@ -104,19 +105,16 @@ export const MathStats: React.FC<MathStatsProps> = ({ history, difficulty, showT
         </div>
       ) : null}
 
-      {stats.scoreHistory.length > 0 ? (
-        <div>
-          <Label className="mb-3 block">Score History</Label>
-          <div className="h-36 sm:h-40 w-full min-w-0 -ml-2">
-            <HistoryStepChart
-              data={stats.scoreHistory}
-              formatValue={value => `${Math.round(value)}`}
-              seriesLabel="Score"
-            />
-          </div>
+      <div>
+        <Label className="mb-3 block">Score History</Label>
+        <div className="h-36 sm:h-40 w-full min-w-0 -ml-2">
+          <HistoryStepChart
+            data={stats.scoreHistory}
+            formatValue={value => `${Math.round(value)}`}
+            seriesLabel="Score"
+          />
         </div>
-      ) : null}
-
+      </div>
       {stats.attempts.length === 0 ? (
         <Text>Detailed per-operation analytics will appear after you play new rounds.</Text>
       ) : (

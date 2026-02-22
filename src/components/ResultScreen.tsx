@@ -5,7 +5,7 @@ import { formatTime } from './GameShell';
 import { GameResult } from '../types';
 import { Button } from './ui/Button';
 import { Label, Mono, SubHeading } from './ui/Typography';
-import { HistoryStepChart } from './charts/HistoryStepChart';
+import { HistorySection } from './HistorySection';
 
 interface ResultScreenProps {
   result: GameResult;
@@ -115,16 +115,14 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
       </div>
 
       {historyData.length > 0 && (
-        <div className="w-full mb-8 sm:mb-10">
-          <Label className="mb-3 block">{historyLabel}</Label>
-          <div className="h-36 sm:h-40 w-full -ml-2 min-w-0">
-            <HistoryStepChart
-              data={historyData}
-              formatValue={value => (isTime ? `${value}s` : `${Math.round(value)}`)}
-              seriesLabel={isTime ? 'Time' : 'Score'}
-            />
-          </div>
-        </div>
+        <HistorySection
+          className="w-full mb-8 sm:mb-10"
+          chartClassName="h-36 sm:h-40 w-full -ml-2 min-w-0"
+          label={historyLabel}
+          data={historyData}
+          formatValue={value => (isTime ? `${value}s` : `${Math.round(value)}`)}
+          seriesLabel={isTime ? 'Time' : 'Score'}
+        />
       )}
 
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full mt-auto">
