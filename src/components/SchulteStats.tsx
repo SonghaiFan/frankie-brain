@@ -244,16 +244,6 @@ export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, roundEvents
                       style={{ backgroundColor: color }}
                       title={avg === undefined ? `${getPositionLabel(idx)}: no data yet` : `${getPositionLabel(idx)}: ${formatDuration(avg)}`}
                     >
-                      {fastRank && (
-                        <span className="absolute top-0.5 left-0.5 sm:top-1 sm:left-1 text-[8px] sm:text-[9px] font-bold leading-none px-1 py-0.5 rounded bg-white/90 text-primary">
-                          F{fastRank}
-                        </span>
-                      )}
-                      {slowRank && (
-                        <span className="absolute bottom-0.5 right-0.5 sm:bottom-1 sm:right-1 text-[8px] sm:text-[9px] font-bold leading-none px-1 py-0.5 rounded bg-ink/90 text-white">
-                          S{slowRank}
-                        </span>
-                      )}
                       {showInlineValue && (
                         <span className={`absolute inset-0 flex items-center justify-center text-[9px] sm:text-[10px] font-semibold ${slowRank ? 'text-white' : 'text-ink'}`}>
                           {getCompactDuration(avg)}
