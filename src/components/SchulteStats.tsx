@@ -4,7 +4,6 @@ import { SubHeading, Label, Mono, Text } from './ui/Typography';
 import { formatTime } from './GameShell';
 import { NumberBarChart } from './charts/NumberBarChart';
 import { HistoryStepChart } from './charts/HistoryStepChart';
-import { ReactionBoxPlotChart } from './charts/ReactionBoxPlotChart';
 import { createDefaultSchulteConfig, getResultSchulteConfigKey, getSchulteConfigKey } from '../utils/schulteConfig';
 
 interface SchulteStatsProps {
@@ -206,22 +205,6 @@ export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, roundEvents
 
       {stats ? (
         <>
-          <div>
-            <Label className="mb-3 block">Reaction Distribution (Tracking-only)</Label>
-            <div className="h-28 sm:h-32 rounded-sm border border-secondary bg-surface p-2">
-              <ReactionBoxPlotChart
-                min={stats.minReaction}
-                q1={stats.q1Reaction}
-                median={stats.medianReaction}
-                q3={stats.q3Reaction}
-                max={stats.maxReaction}
-                mean={stats.meanReaction}
-                p90={stats.p90Reaction}
-                formatValue={formatDuration}
-              />
-            </div>
-          </div>
-
           {/* Heatmap Section */}
           <div>
             <Label className="mb-3 block">Positional Heatmap (Avg Time per Cell)</Label>
