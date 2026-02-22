@@ -4,6 +4,7 @@ import { SubHeading, Label, Mono, Text } from './ui/Typography';
 import { formatTime } from './GameShell';
 import { NumberBarChart } from './charts/NumberBarChart';
 import { HistoryStepChart } from './charts/HistoryStepChart';
+import { ReactionBoxPlotChart } from './charts/ReactionBoxPlotChart';
 import { createDefaultSchulteConfig, getResultSchulteConfigKey, getSchulteConfigKey } from '../utils/schulteConfig';
 
 interface SchulteStatsProps {
@@ -126,8 +127,12 @@ export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, roundEvents
     const maxCellTime = Math.max(...cellAverages.map(c => c.avg));
     const overallCellTime = cellAverages.reduce((sum, item) => sum + item.avg, 0) / cellAverages.length;
     const sortedIntervals = [...reactionIntervals].sort((a, b) => a - b);
+    const minReaction = sortedIntervals[0];
+    const maxReaction = sortedIntervals[sortedIntervals.length - 1];
     const meanReaction = reactionIntervals.reduce((sum, value) => sum + value, 0) / reactionIntervals.length;
+    const q1Reaction = getQuantile(sortedIntervals, 0.25);
     const medianReaction = getQuantile(sortedIntervals, 0.5);
+    const q3Reaction = getQuantile(sortedIntervals, 0.75);
     const p90Reaction = getQuantile(sortedIntervals, 0.9);
     const fastestCells = [...cellAverages].sort((a, b) => a.avg - b.avg).slice(0, 3);
     const slowestCells = [...cellAverages].sort((a, b) => b.avg - a.avg).slice(0, 3);
@@ -141,8 +146,12 @@ export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, roundEvents
       minCellTime,
       maxCellTime,
       overallCellTime,
+      minReaction,
+      q1Reaction,
       meanReaction,
       medianReaction,
+      q3Reaction,
+      maxReaction,
       p90Reaction,
       fastestCells,
       slowestCells,
@@ -193,83 +202,45 @@ export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, roundEvents
         </div>
       </div>
 
-      <div>
-        <Label className="mb-3 block">Round Outcome (Recorded)</Label>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-secondary border border-secondary rounded-sm overflow-hidden">
-          <div className="bg-surface p-2.5 sm:p-3 text-center">
-            <Label className="block mb-1">Completed</Label>
-            <Mono className="text-xs sm:text-sm font-medium">{roundOutcome.completed}</Mono>
-          </div>
-          <div className="bg-surface p-2.5 sm:p-3 text-center">
-            <Label className="block mb-1">Abandoned</Label>
-            <Mono className="text-xs sm:text-sm font-medium">{roundOutcome.abandoned}</Mono>
-          </div>
-          <div className="bg-surface p-2.5 sm:p-3 text-center">
-            <Label className="block mb-1">Completion</Label>
-            <Mono className="text-xs sm:text-sm font-medium">
-              {roundOutcome.completionRate !== null ? `${(roundOutcome.completionRate * 100).toFixed(1)}%` : '--'}
-            </Mono>
-          </div>
-          <div className="bg-surface p-2.5 sm:p-3 text-center">
-            <Label className="block mb-1">Abandon</Label>
-            <Mono className="text-xs sm:text-sm font-medium">
-              {roundOutcome.abandonmentRate !== null ? `${(roundOutcome.abandonmentRate * 100).toFixed(1)}%` : '--'}
-            </Mono>
-          </div>
-        </div>
-      </div>
+ 
 
       {stats ? (
         <>
           <div>
             <Label className="mb-3 block">Reaction Distribution (Tracking-only)</Label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-secondary border border-secondary rounded-sm overflow-hidden">
-              <div className="bg-surface p-2.5 sm:p-3 text-center">
-                <Label className="block mb-1">Mean</Label>
-                <Mono className="text-xs sm:text-sm font-medium">{formatDuration(stats.meanReaction)}</Mono>
-              </div>
-              <div className="bg-surface p-2.5 sm:p-3 text-center">
-                <Label className="block mb-1">Median</Label>
-                <Mono className="text-xs sm:text-sm font-medium">{formatDuration(stats.medianReaction)}</Mono>
-              </div>
-              <div className="bg-surface p-2.5 sm:p-3 text-center">
-                <Label className="block mb-1">P90</Label>
-                <Mono className="text-xs sm:text-sm font-medium">{formatDuration(stats.p90Reaction)}</Mono>
-              </div>
-              <div className="bg-surface p-2.5 sm:p-3 text-center">
-                <Label className="block mb-1">Samples</Label>
-                <Mono className="text-xs sm:text-sm font-medium">{stats.sampleCount}</Mono>
-              </div>
-            </div>
-            <div className="mt-2">
-              <Label>Tracking Games: {stats.count}</Label>
+            <div className="h-28 sm:h-32 rounded-sm border border-secondary bg-surface p-2">
+              <ReactionBoxPlotChart
+                min={stats.minReaction}
+                q1={stats.q1Reaction}
+                median={stats.medianReaction}
+                q3={stats.q3Reaction}
+                max={stats.maxReaction}
+                mean={stats.meanReaction}
+                p90={stats.p90Reaction}
+                formatValue={formatDuration}
+              />
             </div>
           </div>
 
           {/* Heatmap Section */}
           <div>
             <Label className="mb-3 block">Positional Heatmap (Avg Time per Cell)</Label>
-            <div className="grid grid-cols-3 gap-px bg-secondary border border-secondary rounded-sm overflow-hidden mb-4">
-              <div className="bg-surface p-2.5 sm:p-3 text-center">
-                <Label className="block mb-1">Fastest</Label>
-                <Mono className="text-xs sm:text-sm font-medium">{formatDuration(stats.minCellTime)}</Mono>
-              </div>
-              <div className="bg-surface p-2.5 sm:p-3 text-center">
-                <Label className="block mb-1">Typical</Label>
-                <Mono className="text-xs sm:text-sm font-medium">{formatDuration(stats.overallCellTime)}</Mono>
-              </div>
-              <div className="bg-surface p-2.5 sm:p-3 text-center">
-                <Label className="block mb-1">Slowest</Label>
-                <Mono className="text-xs sm:text-sm font-medium">{formatDuration(stats.maxCellTime)}</Mono>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-[10px] uppercase tracking-widest text-ink-lighter">Faster</span>
+            <div className="mb-3 space-y-1.5">
               <div
                 className="h-2 flex-1 rounded-full border border-secondary"
                 style={{ background: 'linear-gradient(90deg, rgba(0,47,167,0.15), rgba(0,47,167,1))' }}
               />
-              <span className="text-[10px] uppercase tracking-widest text-ink-lighter">Slower</span>
+              <div className="grid grid-cols-3 text-[10px] uppercase tracking-widest text-ink-lighter">
+                <span className="text-left">
+                  Fastest {formatDuration(stats.minCellTime)}
+                </span>
+                <span className="text-center">
+                  Typical {formatDuration(stats.overallCellTime)}
+                </span>
+                <span className="text-right">
+                  Slowest {formatDuration(stats.maxCellTime)}
+                </span>
+              </div>
             </div>
             <div className="flex justify-center">
               <div
@@ -309,9 +280,6 @@ export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, roundEvents
                   );
                 })}
               </div>
-            </div>
-            <div className="text-[10px] text-ink-light mt-2 max-w-xs mx-auto text-center">
-              Badge legend: `F1~F3` fastest and `S1~S3` slowest. Value is shown in-cell.
             </div>
           </div>
 
