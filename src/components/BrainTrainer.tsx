@@ -1,17 +1,18 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calculator, Grid3X3 } from 'lucide-react';
 import { GameShell } from './GameShell';
 import { GameType, GameResult } from '../types';
 import SchulteGame from './games/SchulteGame';
 import MathGame from './games/MathGame';
-import { Card, CardContent } from './ui/Card';
+import { Card } from './ui/Card';
 import { Heading, Label, SubHeading, Text } from './ui/Typography';
 
 export default function BrainTrainer() {
   const [activeGame, setActiveGame] = useState<GameType | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [history, setHistory] = useState<GameResult[]>([]);
+  const audioGraphRef = useRef<{ ctx: AudioContext; master: GainNode } | null>(null);
 
   // Load history
   useEffect(() => {
@@ -30,41 +31,85 @@ export default function BrainTrainer() {
     setHistory(prev => [result, ...prev]);
   };
 
-  // Sounds
-  const playSound = useCallback((type: 'click' | 'error' | 'win') => {
-    if (!soundEnabled) return;
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    
-    const now = ctx.currentTime;
-    if (type === 'click') {
-      osc.frequency.setValueAtTime(800, now);
-      osc.frequency.exponentialRampToValueAtTime(400, now + 0.05);
-      gain.gain.setValueAtTime(0.05, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-      osc.start();
-      osc.stop(now + 0.05);
-    } else if (type === 'error') {
-      osc.frequency.setValueAtTime(150, now);
-      osc.type = 'square';
-      gain.gain.setValueAtTime(0.05, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-      osc.start();
-      osc.stop(now + 0.15);
-    } else if (type === 'win') {
-      osc.frequency.setValueAtTime(400, now);
-      osc.frequency.linearRampToValueAtTime(600, now + 0.1);
-      gain.gain.setValueAtTime(0.05, now);
-      gain.gain.linearRampToValueAtTime(0, now + 0.3);
-      osc.start();
-      osc.stop(now + 0.3);
+  const getAudioGraph = useCallback(() => {
+    const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextCtor) return null;
+
+    if (!audioGraphRef.current) {
+      const ctx = new AudioContextCtor();
+      const master = ctx.createGain();
+      master.gain.setValueAtTime(0.9, ctx.currentTime);
+      master.connect(ctx.destination);
+      audioGraphRef.current = { ctx, master };
     }
-  }, [soundEnabled]);
+
+    if (audioGraphRef.current.ctx.state === 'suspended') {
+      void audioGraphRef.current.ctx.resume();
+    }
+
+    return audioGraphRef.current;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (audioGraphRef.current) {
+        void audioGraphRef.current.ctx.close();
+        audioGraphRef.current = null;
+      }
+    };
+  }, []);
+
+  // Sounds
+  const playSound = useCallback((type: 'click' | 'success' | 'error' | 'win') => {
+    if (!soundEnabled) return;
+    const graph = getAudioGraph();
+    if (!graph) return;
+    const { ctx, master } = graph;
+    const now = ctx.currentTime;
+
+    const triggerTone = (
+      frequency: number,
+      wave: OscillatorType,
+      start: number,
+      duration: number,
+      volume: number,
+      targetFrequency?: number
+    ) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = wave;
+      osc.frequency.setValueAtTime(frequency, start);
+      if (targetFrequency) {
+        osc.frequency.exponentialRampToValueAtTime(targetFrequency, start + duration);
+      }
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(volume, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+      osc.connect(gain);
+      gain.connect(master);
+      osc.start(start);
+      osc.stop(start + duration);
+    };
+
+    if (type === 'success') {
+      const frequencies = [740, 1046, 1480];
+      const waveforms: OscillatorType[] = ['triangle', 'sine', 'triangle'];
+      frequencies.forEach((freq, i) => {
+        triggerTone(freq, waveforms[i], now + i * 0.022, 0.12, 0.06);
+      });
+      triggerTone(220, 'sine', now, 0.08, 0.02, 260);
+      return;
+    }
+
+    if (type === 'click') {
+      triggerTone(800, 'sine', now, 0.05, 0.05, 420);
+    } else if (type === 'error') {
+      triggerTone(180, 'square', now, 0.14, 0.05, 120);
+    } else if (type === 'win') {
+      triggerTone(400, 'triangle', now, 0.18, 0.05, 620);
+      triggerTone(620, 'sine', now + 0.08, 0.2, 0.04, 880);
+    }
+  }, [getAudioGraph, soundEnabled]);
 
   return (
     <GameShell 

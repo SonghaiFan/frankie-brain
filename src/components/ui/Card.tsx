@@ -14,7 +14,7 @@ export const Card = ({ children, className = '', onClick, hoverable = false, ...
       onClick={onClick}
       className={`
         bg-surface border border-secondary rounded-md overflow-hidden relative
-        ${(onClick || hoverable) ? 'text-left hover:bg-surface-hover active:scale-[0.99] transition-all cursor-pointer' : ''}
+        ${(onClick || hoverable) ? 'text-left hover:bg-surface-hover active:scale-[0.99] transition-[transform,background-color,border-color,color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-standard)] cursor-pointer' : ''}
         ${onClick ? 'w-full' : ''}
         ${className}
       `}

@@ -4,7 +4,12 @@
  */
 
 import BrainTrainer from './components/BrainTrainer';
+import { MotionConfig } from 'motion/react';
 
 export default function App() {
-  return <BrainTrainer />;
+  return (
+    <MotionConfig reducedMotion="user">
+      <BrainTrainer />
+    </MotionConfig>
+  );
 }

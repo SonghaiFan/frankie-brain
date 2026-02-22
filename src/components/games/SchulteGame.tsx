@@ -270,8 +270,9 @@ export default function SchulteGame({ playSound, history, onComplete }: GameProp
         setLastResult(result);
         setGameState('finished');
         playSound('win');
-        
-        if (!stats.best || finalTime < stats.best) {
+
+        const shouldReduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        if (!shouldReduceMotion && (!stats.best || finalTime < stats.best)) {
           confetti({
             particleCount: 100,
             spread: 70,
@@ -379,7 +380,7 @@ export default function SchulteGame({ playSound, history, onComplete }: GameProp
                   <button
                     key={size}
                     onClick={() => setGridSize(size)}
-                    className={`w-10 h-10 rounded-full font-medium text-sm transition-all duration-200 flex items-center justify-center ${
+                    className={`w-10 h-10 rounded-full font-medium text-sm transition-[transform,background-color,border-color,color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-standard)] flex items-center justify-center ${
                       gridSize === size ? 'bg-primary text-white shadow-sm' : 'bg-secondary text-ink-light hover:bg-secondary-hover'
                     }`}
                   >
@@ -479,7 +480,7 @@ export default function SchulteGame({ playSound, history, onComplete }: GameProp
         <div 
           ref={containerRef}
           onPointerMove={handlePointerMove}
-          className={`w-full aspect-square grid ${gridSize >= 8 ? 'gap-px' : 'gap-1'} bg-secondary border border-secondary transition-all duration-300
+          className={`w-full aspect-square grid ${gridSize >= 8 ? 'gap-px' : 'gap-1'} bg-secondary border border-secondary transition-[filter,opacity,transform] duration-[var(--motion-normal)] ease-[var(--ease-standard)]
             ${gameState === 'countdown' ? 'blur-md opacity-40 scale-95' : 'blur-0 opacity-100 scale-100'}
           `}
           style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}

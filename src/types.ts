@@ -20,6 +20,22 @@ export interface SchulteTrackingData {
   mousePath: TrackingPoint[];
 }
 
+export type MathOperation = '+' | '-' | '*' | '/';
+
+export interface MathAttemptEvent {
+  question: string;
+  operation: MathOperation;
+  expected: number;
+  input: number | null;
+  responseTime: number; // ms since the problem was shown
+  isCorrect: boolean;
+  at: number; // timestamp
+}
+
+export interface MathTrackingData {
+  attempts: MathAttemptEvent[];
+}
+
 export interface GameResult {
   id: string;
   gameType: GameType;
@@ -29,10 +45,11 @@ export interface GameResult {
   gridSize?: number; // for schulte
   date: number;
   trackingData?: SchulteTrackingData; // Optional tracking data
+  mathTrackingData?: MathTrackingData;
 }
 
 export interface GameProps {
-  playSound: (type: 'click' | 'error' | 'win') => void;
+  playSound: (type: 'click' | 'success' | 'error' | 'win') => void;
   history: GameResult[];
   onComplete: (result: GameResult) => void;
 }

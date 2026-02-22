@@ -127,7 +127,7 @@ export const SchulteReplay: React.FC<SchulteReplayProps> = ({ data, onClose }) =
               <button 
                 key={speed}
                 onClick={() => setPlaybackSpeed(speed)}
-                className={`px-2 sm:px-3 py-1 text-[10px] font-bold rounded transition-all ${
+                className={`px-2 sm:px-3 py-1 text-[10px] font-bold rounded transition-[transform,background-color,border-color,color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-standard)] ${
                   playbackSpeed === speed 
                     ? 'bg-primary text-white shadow-sm' 
                     : 'text-ink hover:bg-surface'
@@ -161,7 +161,7 @@ export const SchulteReplay: React.FC<SchulteReplayProps> = ({ data, onClose }) =
               <div
                 key={idx}
                 className={`
-                  flex items-center justify-center font-medium transition-all duration-200
+                  flex items-center justify-center font-medium transition-[transform,background-color,border-color,color,opacity] duration-[var(--motion-fast)] ease-[var(--ease-standard)]
                   ${isFound 
                     ? 'bg-secondary text-ink-lighter' 
                     : isTarget 
@@ -237,7 +237,7 @@ export const SchulteReplay: React.FC<SchulteReplayProps> = ({ data, onClose }) =
           }}
         >
           <div 
-            className="absolute top-0 left-0 h-full bg-primary rounded-full transition-all duration-100"
+            className="absolute top-0 left-0 h-full bg-primary rounded-full transition-[width] duration-[var(--motion-fast)] ease-[var(--ease-standard)]"
             style={{ width: `${progressPct}%` }}
           />
           <div 

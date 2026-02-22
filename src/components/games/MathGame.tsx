@@ -1,20 +1,19 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { History } from 'lucide-react';
+import { ChartNoAxesColumn, Settings } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import confetti from 'canvas-confetti';
-import { format } from 'date-fns';
-import { GameProps, GameResult, Difficulty } from '../../types';
+import { GameProps, GameResult, Difficulty, MathAttemptEvent, MathOperation } from '../../types';
 import { ResultScreen } from '../ResultScreen';
 import { Button } from '../ui/Button';
 import { Label, Mono, SubHeading, Heading } from '../ui/Typography';
-import { HistoryStepChart } from '../charts/HistoryStepChart';
-
-type MathOperation = '+' | '-' | '*' | '/';
+import { MathStats } from '../MathStats';
+type QuestionTemplate = 'result' | 'operand1' | 'operand2';
 
 interface MathProblem {
   id: string;
   question: string;
   answer: number;
-  options: number[];
+  operation: MathOperation;
 }
 
 const generateMathProblem = (difficulty: Difficulty): MathProblem => {
@@ -57,22 +56,31 @@ const generateMathProblem = (difficulty: Difficulty): MathProblem => {
     answer = num1 + num2;
   }
 
-  const question = `${num1} ${operation} ${num2}`;
-  
-  // Generate options
-  const options = new Set<number>();
-  options.add(answer);
-  while (options.size < 4) {
-    const offset = Math.floor(Math.random() * 10) - 5;
-    const wrong = answer + offset;
-    if (wrong !== answer && wrong > 0) options.add(wrong);
-  }
+  const symbol = operation === '*' ? '×' : operation === '/' ? '÷' : operation;
+  const templates: QuestionTemplate[] =
+    difficulty === 'easy'
+      ? ['result', 'operand2', 'result']
+      : difficulty === 'medium'
+        ? ['result', 'operand2', 'operand1']
+        : ['operand2', 'operand1', 'result', 'operand2'];
+  const template = templates[Math.floor(Math.random() * templates.length)];
 
+  let question = '';
+  if (template === 'operand1') {
+    question = `? ${symbol} ${num2} = ${answer}`;
+    answer = num1;
+  } else if (template === 'operand2') {
+    question = `${num1} ${symbol} ? = ${answer}`;
+    answer = num2;
+  } else {
+    question = `${num1} ${symbol} ${num2} = ?`;
+  }
+  
   return {
     id: crypto.randomUUID(),
     question,
     answer,
-    options: Array.from(options).sort(() => Math.random() - 0.5),
+    operation,
   };
 };
 
@@ -84,36 +92,91 @@ export default function MathGame({ playSound, history, onComplete }: GameProps) 
   const [mistakes, setMistakes] = useState(0);
   const [timeLeft, setTimeLeft] = useState(60);
   const [lastResult, setLastResult] = useState<GameResult | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
-  const [errorOption, setErrorOption] = useState<number | null>(null);
+  const [showInsights, setShowInsights] = useState(false);
+  const [userAnswer, setUserAnswer] = useState('');
+  const [showSuccessPulse, setShowSuccessPulse] = useState(false);
+  const [successValue, setSuccessValue] = useState('');
+  const [successOriginY, setSuccessOriginY] = useState<number | null>(null);
+  const [isConfirmingSuccess, setIsConfirmingSuccess] = useState(false);
+  const [pulseKey, setPulseKey] = useState(0);
+  const [inputFlash, setInputFlash] = useState(false);
+  const [wrongFlash, setWrongFlash] = useState(false);
   const timerRef = useRef<number | null>(null);
+  const successTimerRef = useRef<number | null>(null);
+  const flashTimerRef = useRef<number | null>(null);
+  const confirmUnlockTimerRef = useRef<number | null>(null);
+  const wrongFlashTimerRef = useRef<number | null>(null);
+  const attemptsRef = useRef<MathAttemptEvent[]>([]);
+  const problemShownAtRef = useRef<number>(performance.now());
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const filteredHistory = useMemo(
+    () => history.filter(h => h.gameType === 'math' && h.difficulty === difficulty),
+    [history, difficulty]
+  );
 
   // Stats
   const stats = useMemo(() => {
-    const relevant = history.filter(h => h.difficulty === difficulty);
-    if (!relevant.length) return { best: null, average: null, data: [] };
-    
-    const scores = relevant.map(r => r.score);
+    if (!filteredHistory.length) return { best: null, average: null, data: [] as Array<{ index: number; value: number }> };
+
+    const scores = filteredHistory.map(r => r.score);
     const best = Math.max(...scores); // Higher is better for math
     const average = scores.reduce((a, b) => a + b, 0) / scores.length;
-    
-    const data = relevant.slice(0, 20).reverse().map((r, i) => ({
+
+    const data = filteredHistory.slice(0, 20).reverse().map((r, i) => ({
       index: i,
-      value: r.score,
-      date: r.date
+      value: r.score
     }));
 
     return { best, average, data };
-  }, [history, difficulty]);
+  }, [filteredHistory]);
+
+  const historyForResult = useMemo(() => {
+    if (!lastResult || lastResult.gameType !== 'math' || lastResult.difficulty !== difficulty) {
+      return filteredHistory;
+    }
+    const exists = filteredHistory.some(item => item.id === lastResult.id);
+    return exists ? filteredHistory : [lastResult, ...filteredHistory];
+  }, [filteredHistory, lastResult, difficulty]);
+
+  const resultHistoryData = useMemo(
+    () => historyForResult.slice(0, 20).reverse().map((item, index) => ({ index, value: item.score })),
+    [historyForResult]
+  );
 
   const startGame = () => {
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    if (confirmUnlockTimerRef.current) clearTimeout(confirmUnlockTimerRef.current);
+    if (wrongFlashTimerRef.current) clearTimeout(wrongFlashTimerRef.current);
     setScore(0);
     setMistakes(0);
     setTimeLeft(60);
+    setUserAnswer('');
+    setShowSuccessPulse(false);
+    setSuccessValue('');
+    setSuccessOriginY(null);
+    setIsConfirmingSuccess(false);
+    setInputFlash(false);
+    setWrongFlash(false);
+    attemptsRef.current = [];
+    problemShownAtRef.current = performance.now();
     setProblem(generateMathProblem(difficulty));
     setGameState('playing');
     playSound('click');
   };
+
+  useEffect(() => {
+    if (gameState === 'playing' && !isConfirmingSuccess) {
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }, [gameState, problem?.id, isConfirmingSuccess]);
+
+  useEffect(() => {
+    if (gameState === 'playing' && problem) {
+      problemShownAtRef.current = performance.now();
+    }
+  }, [gameState, problem?.id]);
 
   useEffect(() => {
     if (gameState === 'playing') {
@@ -131,6 +194,15 @@ export default function MathGame({ playSound, history, onComplete }: GameProps) 
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [gameState, score, mistakes]);
 
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+      if (confirmUnlockTimerRef.current) clearTimeout(confirmUnlockTimerRef.current);
+      if (wrongFlashTimerRef.current) clearTimeout(wrongFlashTimerRef.current);
+    };
+  }, []);
+
   const finishGame = (finalScore: number, finalMistakes: number) => {
     const result: GameResult = {
       id: crypto.randomUUID(),
@@ -138,14 +210,18 @@ export default function MathGame({ playSound, history, onComplete }: GameProps) 
       score: finalScore,
       mistakes: finalMistakes,
       difficulty,
-      date: Date.now()
+      date: Date.now(),
+      mathTrackingData: {
+        attempts: [...attemptsRef.current]
+      }
     };
     onComplete(result);
     setLastResult(result);
     setGameState('finished');
     playSound('win');
-    
-    if (!stats.best || finalScore > stats.best) {
+
+    const shouldReduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (!shouldReduceMotion && (!stats.best || finalScore > stats.best)) {
       confetti({
         particleCount: 100,
         spread: 70,
@@ -155,34 +231,21 @@ export default function MathGame({ playSound, history, onComplete }: GameProps) 
     }
   };
 
-  const handleAnswer = (selected: number) => {
-    if (!problem) return;
-    
-    if (selected === problem.answer) {
-      playSound('click');
-      setScore(prev => prev + 1);
-      setProblem(generateMathProblem(difficulty));
-    } else {
-      playSound('error');
-      setMistakes(prev => prev + 1);
-      setErrorOption(selected);
-      setTimeout(() => {
-        setErrorOption(null);
-        setProblem(generateMathProblem(difficulty));
-      }, 300);
-    }
-  };
-
   if (gameState === 'finished' && lastResult) {
     return (
       <ResultScreen 
         result={lastResult} 
         average={stats.average} 
         best={stats.best}
-        onMenu={() => setGameState('menu')}
+        onMenu={() => {
+          setShowInsights(false);
+          setGameState('menu');
+        }}
         onReplay={startGame}
         isRecord={!stats.best || lastResult.score > stats.best}
         unit=""
+        historyData={resultHistoryData}
+        historyLabel={`History (${difficulty})`}
       />
     );
   }
@@ -191,36 +254,42 @@ export default function MathGame({ playSound, history, onComplete }: GameProps) 
     return (
       <div className="flex-1 flex flex-col p-4 sm:p-6 overflow-y-auto bg-surface">
         <div className="flex justify-between items-center mb-4 sm:mb-6">
-           <SubHeading>Settings</SubHeading>
-           <button onClick={() => setShowHistory(!showHistory)} className="p-2 hover:bg-secondary rounded-full">
-             <History className="w-5 h-5 text-ink-light" />
-           </button>
+           <SubHeading>{showInsights ? 'Insights' : 'Settings'}</SubHeading>
+           <div
+             className="inline-flex items-center rounded-full border border-secondary bg-secondary p-0.5"
+             role="tablist"
+             aria-label="Quick Math menu view switcher"
+           >
+             <button
+               onClick={() => setShowInsights(false)}
+               role="tab"
+               aria-selected={!showInsights}
+               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                 !showInsights ? 'bg-surface text-ink shadow-sm' : 'text-ink-light hover:text-ink'
+               }`}
+               title="Show Settings"
+             >
+               <Settings className="h-3.5 w-3.5" />
+               <span>Settings</span>
+             </button>
+             <button
+               onClick={() => setShowInsights(true)}
+               role="tab"
+               aria-selected={showInsights}
+               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                 showInsights ? 'bg-surface text-ink shadow-sm' : 'text-ink-light hover:text-ink'
+               }`}
+               title="Show Insights"
+             >
+               <ChartNoAxesColumn className="h-3.5 w-3.5" />
+               <span>Insights</span>
+             </button>
+           </div>
         </div>
 
-        {showHistory ? (
-          <div className="flex-1">
-             <Label className="mb-4 block">History ({difficulty})</Label>
-             {stats.data.length > 0 ? (
-               <>
-                 <div className="h-36 sm:h-40 w-full mb-4 sm:mb-6 -ml-2 min-w-0">
-                    <HistoryStepChart
-                      data={stats.data}
-                      formatValue={value => `${Math.round(value)}`}
-                      seriesLabel="Score"
-                    />
-                 </div>
-                 <div className="space-y-px bg-secondary border border-secondary rounded-sm overflow-hidden">
-                    {history.filter(h => h.difficulty === difficulty).slice(0, 10).map(r => (
-                      <div key={r.id} className="flex justify-between p-2.5 sm:p-3 bg-surface text-xs">
-                        <span className="text-ink-lighter">{format(r.date, 'MM/dd HH:mm')}</span>
-                        <Mono className="font-medium">{r.score} pts</Mono>
-                      </div>
-                    ))}
-                 </div>
-               </>
-             ) : (
-               <p className="text-center text-ink-lighter text-sm mt-6 sm:mt-8">No games played yet.</p>
-             )}
+        {showInsights ? (
+          <div className="flex-1 space-y-6">
+            <MathStats history={history} difficulty={difficulty} showTitle={false} className="p-0 sm:p-0" />
           </div>
         ) : (
           <div className="flex-1 flex flex-col justify-center space-y-6 sm:space-y-8">
@@ -233,7 +302,7 @@ export default function MathGame({ playSound, history, onComplete }: GameProps) 
                   <button
                     key={d}
                     onClick={() => setDifficulty(d)}
-                    className={`px-3 sm:px-4 py-2 rounded-full font-medium text-[11px] sm:text-xs uppercase tracking-wider transition-all duration-200 ${
+                    className={`px-3 sm:px-4 py-2 rounded-full font-medium text-[11px] sm:text-xs uppercase tracking-wider transition-[background-color,color,box-shadow,transform] duration-[var(--motion-fast)] ease-[var(--ease-standard)] ${
                       difficulty === d ? 'bg-primary text-white shadow-sm' : 'bg-secondary text-ink-light hover:bg-secondary-hover'
                     }`}
                   >
@@ -274,23 +343,136 @@ export default function MathGame({ playSound, history, onComplete }: GameProps) 
          <Label className="text-[9px] sm:text-[10px]">Score: {score}</Label>
       </div>
       
-      <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 bg-surface">
-        <Heading className="mb-8 sm:mb-12 text-4xl sm:text-5xl text-center">{problem?.question}</Heading>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full max-w-xs">
-          {problem?.options.map((opt, i) => (
-            <button
-              key={i}
-              onPointerDown={() => handleAnswer(opt)}
-              className={`py-4 sm:py-6 text-xl sm:text-2xl font-medium rounded-[4px] transition-colors touch-manipulation
-                ${errorOption === opt 
-                  ? 'bg-[var(--color-error)] text-white' 
-                  : 'bg-secondary hover:bg-secondary-hover active:bg-primary active:text-white text-ink'
-                }
-              `}
-            >
-              {opt}
-            </button>
-          ))}
+      <div className="flex-1 flex flex-col items-center justify-center p-5 sm:p-8 bg-surface">
+        <div className="relative w-full max-w-sm">
+          <div className="relative mb-8 min-h-[4.5rem] sm:min-h-[5rem]">
+            <AnimatePresence mode="wait" initial={false}>
+              {problem ? (
+                <motion.div
+                  key={problem.id}
+                  className="absolute inset-0 flex items-center justify-center"
+                  initial={{ opacity: isConfirmingSuccess ? 0 : 1, y: isConfirmingSuccess ? 28 : 0 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={isConfirmingSuccess ? { opacity: 0, y: -34 } : { opacity: 0, y: -8 }}
+                  transition={{ duration: isConfirmingSuccess ? 0.24 : 0.16, ease: [0.2, 0, 0, 1] }}
+                >
+                  <Heading className="text-4xl sm:text-5xl text-center">{problem.question}</Heading>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          </div>
+          <input
+            ref={inputRef}
+            type="text"
+            inputMode="numeric"
+            value={userAnswer}
+            disabled={isConfirmingSuccess}
+            onBlur={() => {
+              if (gameState === 'playing' && !isConfirmingSuccess) {
+                requestAnimationFrame(() => inputRef.current?.focus());
+              }
+            }}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (!/^\d*$/.test(value)) return;
+              setUserAnswer(value);
+              if (isConfirmingSuccess) return;
+              if (!problem || value === '') return;
+              const answerText = String(problem.answer);
+              const parsedInput = Number.parseInt(value, 10);
+              const elapsed = Math.max(0, Math.round(performance.now() - problemShownAtRef.current));
+
+              if (value === answerText) {
+                attemptsRef.current.push({
+                  question: problem.question,
+                  operation: problem.operation,
+                  expected: problem.answer,
+                  input: Number.isNaN(parsedInput) ? null : parsedInput,
+                  responseTime: elapsed,
+                  isCorrect: true,
+                  at: Date.now()
+                });
+                playSound('success');
+                setScore(prev => prev + 1);
+                setInputFlash(true);
+                setWrongFlash(false);
+                setSuccessValue(answerText);
+                setSuccessOriginY(
+                  inputRef.current ? inputRef.current.offsetTop + (inputRef.current.offsetHeight / 2) : null
+                );
+                setIsConfirmingSuccess(true);
+                setPulseKey(prev => prev + 1);
+                setShowSuccessPulse(true);
+                if (successTimerRef.current) clearTimeout(successTimerRef.current);
+                if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+                if (confirmUnlockTimerRef.current) clearTimeout(confirmUnlockTimerRef.current);
+                if (wrongFlashTimerRef.current) clearTimeout(wrongFlashTimerRef.current);
+                successTimerRef.current = window.setTimeout(() => {
+                  setShowSuccessPulse(false);
+                  setSuccessValue('');
+                  setSuccessOriginY(null);
+                }, 340);
+                flashTimerRef.current = window.setTimeout(() => setInputFlash(false), 180);
+                setProblem(generateMathProblem(difficulty));
+                setUserAnswer('');
+                confirmUnlockTimerRef.current = window.setTimeout(() => {
+                  setIsConfirmingSuccess(false);
+                }, 340);
+                return;
+              }
+
+              if (!answerText.startsWith(value)) {
+                attemptsRef.current.push({
+                  question: problem.question,
+                  operation: problem.operation,
+                  expected: problem.answer,
+                  input: Number.isNaN(parsedInput) ? null : parsedInput,
+                  responseTime: elapsed,
+                  isCorrect: false,
+                  at: Date.now()
+                });
+                playSound('error');
+                setMistakes(prev => prev + 1);
+                setUserAnswer('');
+                setInputFlash(false);
+                setWrongFlash(true);
+                problemShownAtRef.current = performance.now();
+                if (wrongFlashTimerRef.current) clearTimeout(wrongFlashTimerRef.current);
+                wrongFlashTimerRef.current = window.setTimeout(() => setWrongFlash(false), 170);
+              }
+            }}
+            className={`w-full border-0 border-b-2 px-2 py-3 text-center text-4xl sm:text-5xl font-medium tabular-nums text-ink bg-transparent outline-none transition-[border-color,color] duration-[var(--motion-fast)] ease-[var(--ease-standard)] ${
+              wrongFlash
+                ? 'border-[var(--color-error)] math-input-shake'
+                : inputFlash
+                  ? 'border-primary'
+                  : 'border-secondary focus:border-primary'
+            }`}
+            placeholder="?"
+            autoComplete="off"
+            aria-label="Type your answer"
+          />
+          <AnimatePresence>
+            {showSuccessPulse ? (
+              <motion.div
+                key={pulseKey}
+                className="pointer-events-none absolute left-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl sm:text-5xl font-semibold tabular-nums text-primary"
+                style={{ top: successOriginY !== null ? `${successOriginY}px` : '50%' }}
+                initial={{ opacity: 0, x: 0, y: 0, scale: 1, rotate: 0 }}
+                animate={{
+                  opacity: [0, 1, 0],
+                  x: [0, 0, 0],
+                  y: [0, -18, -52],
+                  scale: [0.96, 1.04, 0.9],
+                  rotate: [0, 0, 0]
+                }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.34, ease: [0.2, 0, 0, 1] }}
+              >
+                {successValue}
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </div>
       </div>
     </div>

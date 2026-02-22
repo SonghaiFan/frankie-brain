@@ -14,7 +14,7 @@ export const Button = ({
   children,
   ...props 
 }: ButtonProps) => {
-  const baseStyles = "rounded-[4px] font-medium uppercase tracking-widest transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed";
+  const baseStyles = "rounded-[4px] font-medium uppercase tracking-widest transition-[transform,background-color,border-color,color,opacity,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-standard)] active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed";
   
   const variants = {
     primary: "bg-primary text-white hover:bg-primary-hover shadow-sm",
