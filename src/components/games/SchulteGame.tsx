@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowUpDown, ChartNoAxesColumn, ChevronDown, ChevronUp, Crosshair, Grid3X3, Hash, RotateCcw, Settings, Shuffle, Type, Box } from 'lucide-react';
+import { ArrowUpDown, ChartNoAxesColumn, ChevronDown, ChevronUp, Crosshair, Grid3X3, RotateCcw, Settings, Shuffle, Box, Plus } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
   GameProps,
@@ -12,7 +12,6 @@ import {
   SchultePreset,
   SchulteRoundEvent,
   SchulteSymbolOrder,
-  SchulteTableStyle,
   SchulteTableType,
   SchulteTrainingMode
 } from '../../types';
@@ -37,7 +36,7 @@ const SCHULTE_TABLE_SIZES = [3, 4, 5, 6, 7, 8, 9] as const;
 const BUILTIN_PRESETS: SchultePreset[] = [
   {
     id: 'builtin-classic-5x5',
-    name: 'Classic 5x5 Digits',
+    name: 'Classic',
     createdAt: 0,
     config: {
       tableSize: 5,
@@ -45,35 +44,21 @@ const BUILTIN_PRESETS: SchultePreset[] = [
       tableStyle: 'classic',
       symbolOrder: 'direct',
       shuffleOnClick: false,
-      showCenterDot: true,
+      showCenterDot: false,
       trainingMode: 'classic'
     }
   },
   {
-    id: 'builtin-direct-6x6',
-    name: 'Direct 6x6 Digits',
+    id: 'builtin-gorbov-6x6',
+    name: 'Gorbov',
     createdAt: 0,
     config: {
       tableSize: 6,
-      tableType: 'digits',
-      tableStyle: 'classic',
-      symbolOrder: 'direct',
-      shuffleOnClick: false,
-      showCenterDot: true,
-      trainingMode: 'classic'
-    }
-  },
-  {
-    id: 'builtin-gorbov-5x5',
-    name: 'Gorbov Alternating 5x5',
-    createdAt: 0,
-    config: {
-      tableSize: 5,
       tableType: 'gorbov-schulte',
       tableStyle: 'classic',
       symbolOrder: 'direct',
       shuffleOnClick: false,
-      showCenterDot: true,
+      showCenterDot: false,
       trainingMode: 'classic'
     }
   }
@@ -210,10 +195,8 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
   const [gridSize, setGridSize] = useState(5);
   const [trainingMode, setTrainingMode] = useState<SchulteTrainingMode>('classic');
   const [tableType, setTableType] = useState<SchulteTableType>('digits');
-  const [tableStyle, setTableStyle] = useState<SchulteTableStyle>('classic');
   const [symbolOrder, setSymbolOrder] = useState<SchulteSymbolOrder>('direct');
   const [shuffleOnClick, setShuffleOnClick] = useState(false);
-  const [showCenterDot, setShowCenterDot] = useState(true);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [numbers, setNumbers] = useState<number[]>([]);
   const [targetOrder, setTargetOrder] = useState<number[]>([]);
@@ -227,6 +210,7 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
   const [replayData, setReplayData] = useState<SchulteTrackingData | null>(null);
   const [countdownValue, setCountdownValue] = useState(3);
   const [errorCell, setErrorCell] = useState<number | null>(null);
+  const [successCell, setSuccessCell] = useState<number | null>(null);
   const [customPresets, setCustomPresets] = useState<SchultePreset[]>(() => {
     try {
       const raw = localStorage.getItem(SCHULTE_PRESETS_KEY);
@@ -298,13 +282,13 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
     () => ({
       tableSize: gridSize,
       tableType,
-      tableStyle,
+      tableStyle: 'classic',
       symbolOrder,
       shuffleOnClick,
-      showCenterDot,
+      showCenterDot: false,
       trainingMode
     }),
-    [gridSize, showCenterDot, shuffleOnClick, symbolOrder, tableStyle, tableType, trainingMode]
+    [gridSize, shuffleOnClick, symbolOrder, tableType, trainingMode]
   );
   const currentConfigKey = useMemo(() => getSchulteConfigKey(currentConfig), [currentConfig]);
   const activePreset = useMemo(() => {
@@ -320,10 +304,8 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
   const applyConfig = (config: SchulteConfig) => {
     setGridSize(Math.min(config.tableSize, 9));
     setTableType(config.tableType);
-    setTableStyle(config.tableStyle);
     setSymbolOrder(config.symbolOrder);
     setShuffleOnClick(config.shuffleOnClick);
-    setShowCenterDot(config.showCenterDot);
     setTrainingMode(config.trainingMode);
   };
 
@@ -404,15 +386,6 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
     }
     if (tableType === 'letters') return numberToLetters(id);
     return String(id);
-  };
-  const getPresetBadge = (preset: SchultePreset) => {
-    const typeToken =
-      preset.config.tableType === 'gorbov-schulte'
-        ? 'G'
-        : preset.config.tableType === 'letters'
-          ? 'L'
-          : 'D';
-    return `${typeToken}${preset.config.tableSize}`;
   };
   const tableTypeLabel =
     tableType === 'gorbov-schulte'
@@ -684,6 +657,7 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
     setMistakes(0);
     setCountdownValue(3);
     setErrorCell(null);
+    setSuccessCell(null);
     setGameState('countdown');
     
     // Reset tracking
@@ -750,6 +724,8 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
     
     if (number === currentTarget) {
       playSound('click');
+      setSuccessCell(number);
+      setTimeout(() => setSuccessCell(null), 140);
       
       // Record Click
       clicksRef.current.push({
@@ -906,38 +882,38 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
           <div className="flex-1 flex flex-col justify-center gap-6">
             <div>
               <Label className="mb-3 block text-center">Mode</Label>
-              <div className="mx-auto flex w-full max-w-md items-center justify-start gap-2 overflow-x-auto pb-1">
+              <div className="mx-auto flex w-full max-w-md items-center justify-center gap-2 overflow-x-auto pb-1">
                 {allPresets.map((preset) => {
                   const isActive = activePreset?.id === preset.id;
                   return (
                     <button
                       key={preset.id}
                       onClick={() => applyPreset(preset)}
-                      className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold tracking-wide transition-[background-color,color,border-color] ${
+                      className={`inline-flex h-8 shrink-0 items-center justify-center rounded-full border px-3.5 text-xs font-medium transition-[background-color,color,border-color,box-shadow] ${
                         isActive
-                          ? 'border-primary bg-primary text-white'
+                          ? 'border-primary bg-primary text-white shadow-sm'
                           : 'border-secondary bg-secondary text-ink-light hover:bg-secondary-hover'
                       }`}
                       title={preset.name}
                       aria-label={`Preset ${preset.name}`}
                     >
-                      {getPresetBadge(preset)}
+                      <span className="max-w-[140px] truncate">{preset.name}</span>
                     </button>
                   );
                 })}
                 <button
                   onClick={saveCurrentPreset}
-                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-dashed border-secondary bg-surface text-lg font-medium text-ink-light transition-colors hover:bg-secondary hover:text-ink"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-dashed border-secondary bg-surface text-lg font-medium text-ink-light transition-colors hover:bg-secondary hover:text-ink"
                   title="Create preset from current settings"
                   aria-label="Create preset"
                 >
-                  +
+                 <Plus className="h-4 w-4" />
                 </button>
               </div>
               <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
                 <span className="inline-flex items-center gap-1 rounded-full border border-secondary bg-surface px-2 py-1 text-[10px] uppercase tracking-wider text-ink-light">
                   <Grid3X3 className="h-3 w-3" />
-                  {gridSize}x{gridSize}
+                  {gridSize}
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-full border border-secondary bg-surface px-2 py-1 text-[10px] uppercase tracking-wider text-ink-light">
                   <Box className="h-3 w-3" />
@@ -972,12 +948,12 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
               </button>
 
               {showAdvancedSettings && (
-                <div className="mt-3 space-y-4 rounded-md border border-secondary bg-surface p-3">
+                <div className="mt-3 space-y-4 rounded-2xl border border-secondary bg-surface p-3">
                   <div>
                     <Label className="mb-2 block text-center">
                       <span className="inline-flex items-center gap-1">
                         <Grid3X3 className="h-3.5 w-3.5" />
-                        Table Size
+                        Grid Size
                       </span>
                     </Label>
                     <div className="flex flex-wrap justify-center gap-1.5">
@@ -985,11 +961,11 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
                         <button
                           key={size}
                           onClick={() => setGridSize(size)}
-                          className={`px-3 py-1.5 rounded-sm font-medium text-xs transition-[background-color,color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-standard)] ${
+                          className={`h-10 w-10 rounded-full font-semibold text-sm transition-[background-color,color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-standard)] ${
                             gridSize === size ? 'bg-primary text-white shadow-sm' : 'bg-secondary text-ink-light hover:bg-secondary-hover'
                           }`}
                         >
-                          {size}x{size}
+                          {size}
                         </button>
                       ))}
                     </div>
@@ -1128,66 +1104,11 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
                     </div>
                   </div>
 
-                  <div className="border-t border-secondary pt-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="mb-2 block text-center">Cell Style</Label>
-                        <div className="inline-flex w-full items-center rounded-full border border-secondary bg-secondary p-0.5">
-                          <button
-                            onClick={() => setTableStyle('classic')}
-                            className={`inline-flex flex-1 items-center justify-center rounded-full px-2 py-1.5 text-xs font-medium transition-colors ${
-                              tableStyle === 'classic' ? 'bg-surface text-ink shadow-sm' : 'text-ink-light hover:text-ink'
-                            }`}
-                          >
-                            Classic
-                          </button>
-                          <button
-                            onClick={() => setTableStyle('round')}
-                            className={`inline-flex flex-1 items-center justify-center rounded-full px-2 py-1.5 text-xs font-medium transition-colors ${
-                              tableStyle === 'round' ? 'bg-surface text-ink shadow-sm' : 'text-ink-light hover:text-ink'
-                            }`}
-                          >
-                            Round
-                          </button>
-                          <button
-                            onClick={() => setTableStyle('colored')}
-                            className={`inline-flex flex-1 items-center justify-center rounded-full px-2 py-1.5 text-xs font-medium transition-colors ${
-                              tableStyle === 'colored' ? 'bg-surface text-ink shadow-sm' : 'text-ink-light hover:text-ink'
-                            }`}
-                          >
-                            Color
-                          </button>
-                        </div>
-                      </div>
-                      <div>
-                        <Label className="mb-2 block text-center">Center Dot</Label>
-                        <div className="inline-flex w-full items-center rounded-full border border-secondary bg-secondary p-0.5">
-                          <button
-                            onClick={() => setShowCenterDot(true)}
-                            className={`inline-flex flex-1 items-center justify-center rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                              showCenterDot ? 'bg-surface text-ink shadow-sm' : 'text-ink-light hover:text-ink'
-                            }`}
-                          >
-                            On
-                          </button>
-                          <button
-                            onClick={() => setShowCenterDot(false)}
-                            className={`inline-flex flex-1 items-center justify-center rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                              !showCenterDot ? 'bg-surface text-ink shadow-sm' : 'text-ink-light hover:text-ink'
-                            }`}
-                          >
-                            Off
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
                   {activeCustomPreset && (
-                    <div className="border-t border-secondary pt-3">
+                    <div className="border-t border-secondary pt-4">
                       <button
                         onClick={() => deleteCustomPreset(activeCustomPreset)}
-                        className="w-full rounded-sm border border-secondary px-3 py-2 text-xs font-medium uppercase tracking-wider text-[var(--color-error)] hover:bg-secondary"
+                        className="w-full rounded-full border border-secondary px-3 py-2 text-xs font-medium uppercase tracking-wider text-[var(--color-error)] hover:bg-secondary"
                       >
                         Delete "{activeCustomPreset.name}" and clear data
                       </button>
@@ -1281,27 +1202,28 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
           >
             {numbers.map((num, index) => {
               const isError = errorCell === num;
+              const isSuccess = successCell === num;
               const isGorbov = tableType === 'gorbov-schulte';
               const gorbovSymbol = gorbovSymbolById.get(num);
-              const style: React.CSSProperties = {};
-
-              if (!isError && isGorbov) {
-                style.backgroundColor = gorbovSymbol?.tone === 'black' ? '#000000' : '#EF1414';
-                style.color = '#FFFFFF';
-              } else if (!isError && tableStyle === 'colored') {
-                const hue = (num * 37) % 360;
-                style.backgroundColor = `hsl(${hue} 85% 91%)`;
-              }
+              const isGorbovBlack = isGorbov && gorbovSymbol?.tone === 'black';
 
               return (
                 <button
                   key={num}
                   onPointerDown={() => handleCellClick(num, index)}
                   disabled={gameState === 'countdown'}
-                  style={style}
                   className={`
-                    ${isError ? 'bg-[var(--color-error)] text-white' : isGorbov ? 'hover:opacity-95 active:opacity-80' : tableStyle === 'colored' ? 'text-ink active:opacity-80' : 'bg-surface hover:bg-white text-ink active:bg-primary active:text-white'}
-                    ${tableStyle === 'round' ? 'rounded-full' : ''}
+                    ${
+                      isError
+                        ? 'bg-[var(--color-error)] text-white'
+                        : isSuccess
+                          ? 'bg-primary text-white'
+                          : isGorbovBlack
+                            ? 'bg-black text-white hover:brightness-95 active:brightness-90'
+                            : isGorbov
+                              ? 'bg-surface text-ink hover:bg-secondary active:brightness-95'
+                                : 'bg-surface hover:bg-secondary text-ink active:brightness-95'
+                    }
                     font-medium flex items-center justify-center transition-colors touch-manipulation
                     ${gridSize >= 8 ? 'text-sm sm:text-lg' : gridSize >= 6 ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl'}
                   `}
@@ -1311,9 +1233,6 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
               );
             })}
           </div>
-          {showCenterDot && (
-            <div className="pointer-events-none absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/80 shadow-[0_0_0_2px_rgba(255,255,255,0.7)]" />
-          )}
         </div>
       </div>
       
@@ -1321,10 +1240,13 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
          <Label>Find</Label>
          {tableType === 'gorbov-schulte' && currentTarget !== null && (
            <span
-             className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white"
-             style={{ backgroundColor: gorbovSymbolById.get(currentTarget)?.tone === 'black' ? '#000000' : '#EF1414' }}
+             className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${
+               gorbovSymbolById.get(currentTarget)?.tone === 'black'
+                 ? 'bg-black text-white'
+                 : 'border border-secondary bg-surface text-ink'
+             }`}
            >
-             {gorbovSymbolById.get(currentTarget)?.tone === 'black' ? 'Black' : 'Red'}
+             {gorbovSymbolById.get(currentTarget)?.tone === 'black' ? 'Black' : 'White'}
            </span>
          )}
          <span

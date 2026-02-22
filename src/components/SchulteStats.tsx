@@ -284,7 +284,7 @@ export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, roundEvents
                   const showInlineValue = avg !== undefined && (fastRank || slowRank);
 
                   return (
-                    <divGAME LOGIC
+                    <div
                       key={idx}
                       className="relative"
                       style={{ backgroundColor: color }}
