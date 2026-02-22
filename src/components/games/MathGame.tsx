@@ -173,6 +173,17 @@ export default function MathGame({ playSound, history, onComplete }: GameProps) 
   }, [gameState, problem?.id, isConfirmingSuccess]);
 
   useEffect(() => {
+    if (gameState !== 'playing') return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && !isConfirmingSuccess) {
+        requestAnimationFrame(() => inputRef.current?.focus());
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [gameState, isConfirmingSuccess]);
+
+  useEffect(() => {
     if (gameState === 'playing' && problem) {
       problemShownAtRef.current = performance.now();
     }
@@ -344,7 +355,14 @@ export default function MathGame({ playSound, history, onComplete }: GameProps) 
       </div>
       
       <div className="flex-1 flex flex-col items-center justify-center p-5 sm:p-8 bg-surface">
-        <div className="relative w-full max-w-sm">
+        <div
+          className="relative w-full max-w-sm"
+          onPointerDown={() => {
+            if (gameState === 'playing' && !isConfirmingSuccess) {
+              requestAnimationFrame(() => inputRef.current?.focus());
+            }
+          }}
+        >
           <div className="relative mb-8 min-h-[4.5rem] sm:min-h-[5rem]">
             <AnimatePresence mode="wait" initial={false}>
               {problem ? (
@@ -366,17 +384,17 @@ export default function MathGame({ playSound, history, onComplete }: GameProps) 
             type="text"
             inputMode="numeric"
             value={userAnswer}
-            disabled={isConfirmingSuccess}
+            autoFocus
             onBlur={() => {
               if (gameState === 'playing' && !isConfirmingSuccess) {
                 requestAnimationFrame(() => inputRef.current?.focus());
               }
             }}
             onChange={(e) => {
+              if (isConfirmingSuccess) return;
               const value = e.target.value;
               if (!/^\d*$/.test(value)) return;
               setUserAnswer(value);
-              if (isConfirmingSuccess) return;
               if (!problem || value === '') return;
               const answerText = String(problem.answer);
               const parsedInput = Number.parseInt(value, 10);
