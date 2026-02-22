@@ -1,18 +1,31 @@
 import React, { useMemo } from 'react';
-import { GameResult } from '../types';
+import { GameResult, SchulteRoundEvent } from '../types';
 import { SubHeading, Label, Mono, Text } from './ui/Typography';
 import { formatTime } from './GameShell';
 import { NumberBarChart } from './charts/NumberBarChart';
 import { HistoryStepChart } from './charts/HistoryStepChart';
+import { createDefaultSchulteConfig, getResultSchulteConfigKey, getSchulteConfigKey } from '../utils/schulteConfig';
 
 interface SchulteStatsProps {
   history: GameResult[];
+  roundEvents?: SchulteRoundEvent[];
   gridSize: number;
+  configKey?: string;
   showTitle?: boolean;
   className?: string;
 }
 
-export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, gridSize, showTitle = true, className = '' }) => {
+const getQuantile = (sorted: number[], q: number): number => {
+  if (!sorted.length) return 0;
+  if (sorted.length === 1) return sorted[0];
+  const pos = (sorted.length - 1) * q;
+  const base = Math.floor(pos);
+  const rest = pos - base;
+  const next = sorted[base + 1] ?? sorted[base];
+  return sorted[base] + (next - sorted[base]) * rest;
+};
+
+export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, roundEvents = [], gridSize, configKey, showTitle = true, className = '' }) => {
   const formatDuration = (ms: number) => `${formatTime(ms)}s`;
   const getPositionLabel = (index: number) => {
     const row = Math.floor(index / gridSize) + 1;
@@ -21,8 +34,13 @@ export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, gridSize, s
   };
 
   const gridHistory = useMemo(
-    () => history.filter(h => h.gameType === 'schulte' && h.gridSize === gridSize),
-    [history, gridSize]
+    () =>
+      history.filter(h => {
+        if (h.gameType !== 'schulte' || h.gridSize !== gridSize) return false;
+        if (!configKey) return true;
+        return getResultSchulteConfigKey(h) === configKey;
+      }),
+    [configKey, history, gridSize]
   );
 
   const historyData = useMemo(
@@ -34,12 +52,33 @@ export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, gridSize, s
     [gridHistory]
   );
 
+  const roundOutcome = useMemo(() => {
+    const fallbackLegacyKey = getSchulteConfigKey(createDefaultSchulteConfig(gridSize));
+    const scoped = roundEvents.filter(event => {
+      if (event.gridSize !== gridSize) return false;
+      if (!configKey) return true;
+      if (event.configKey) return event.configKey === configKey;
+      return configKey === fallbackLegacyKey;
+    });
+    const completed = scoped.filter(event => event.status === 'completed').length;
+    const abandoned = scoped.filter(event => event.status === 'abandoned').length;
+    const started = completed + abandoned;
+    return {
+      completed,
+      abandoned,
+      started,
+      completionRate: started ? completed / started : null,
+      abandonmentRate: started ? abandoned / started : null
+    };
+  }, [configKey, gridSize, roundEvents]);
+
   const stats = useMemo(() => {
     const relevant = gridHistory.filter(h => h.trackingData);
     if (relevant.length === 0) return null;
 
     const cellTimes: { [key: number]: number[] } = {};
     const numberTimes: { [key: number]: number[] } = {};
+    const reactionIntervals: number[] = [];
 
     relevant.forEach(game => {
       if (!game.trackingData) return;
@@ -53,6 +92,7 @@ export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, gridSize, s
         
         const interval = click.time - lastTime;
         lastTime = click.time;
+        reactionIntervals.push(interval);
 
         // Record for Cell Index
         if (!cellTimes[click.cellIndex]) cellTimes[click.cellIndex] = [];
@@ -77,10 +117,18 @@ export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, gridSize, s
       return { number: parseInt(num), avg };
     });
 
+    if (cellAverages.length === 0 || reactionIntervals.length === 0) {
+      return null;
+    }
+
     // Find min/max for heatmap coloring
     const minCellTime = Math.min(...cellAverages.map(c => c.avg));
     const maxCellTime = Math.max(...cellAverages.map(c => c.avg));
     const overallCellTime = cellAverages.reduce((sum, item) => sum + item.avg, 0) / cellAverages.length;
+    const sortedIntervals = [...reactionIntervals].sort((a, b) => a - b);
+    const meanReaction = reactionIntervals.reduce((sum, value) => sum + value, 0) / reactionIntervals.length;
+    const medianReaction = getQuantile(sortedIntervals, 0.5);
+    const p90Reaction = getQuantile(sortedIntervals, 0.9);
     const fastestCells = [...cellAverages].sort((a, b) => a.avg - b.avg).slice(0, 3);
     const slowestCells = [...cellAverages].sort((a, b) => b.avg - a.avg).slice(0, 3);
     const cellAverageMap = new Map(cellAverages.map(item => [item.index, item.avg]));
@@ -93,12 +141,16 @@ export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, gridSize, s
       minCellTime,
       maxCellTime,
       overallCellTime,
+      meanReaction,
+      medianReaction,
+      p90Reaction,
       fastestCells,
       slowestCells,
       cellAverageMap,
       fastestRankMap,
       slowestRankMap,
-      count: relevant.length
+      count: relevant.length,
+      sampleCount: reactionIntervals.length
     };
   }, [gridHistory, gridSize]);
 
@@ -141,8 +193,59 @@ export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, gridSize, s
         </div>
       </div>
 
+      <div>
+        <Label className="mb-3 block">Round Outcome (Recorded)</Label>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-secondary border border-secondary rounded-sm overflow-hidden">
+          <div className="bg-surface p-2.5 sm:p-3 text-center">
+            <Label className="block mb-1">Completed</Label>
+            <Mono className="text-xs sm:text-sm font-medium">{roundOutcome.completed}</Mono>
+          </div>
+          <div className="bg-surface p-2.5 sm:p-3 text-center">
+            <Label className="block mb-1">Abandoned</Label>
+            <Mono className="text-xs sm:text-sm font-medium">{roundOutcome.abandoned}</Mono>
+          </div>
+          <div className="bg-surface p-2.5 sm:p-3 text-center">
+            <Label className="block mb-1">Completion</Label>
+            <Mono className="text-xs sm:text-sm font-medium">
+              {roundOutcome.completionRate !== null ? `${(roundOutcome.completionRate * 100).toFixed(1)}%` : '--'}
+            </Mono>
+          </div>
+          <div className="bg-surface p-2.5 sm:p-3 text-center">
+            <Label className="block mb-1">Abandon</Label>
+            <Mono className="text-xs sm:text-sm font-medium">
+              {roundOutcome.abandonmentRate !== null ? `${(roundOutcome.abandonmentRate * 100).toFixed(1)}%` : '--'}
+            </Mono>
+          </div>
+        </div>
+      </div>
+
       {stats ? (
         <>
+          <div>
+            <Label className="mb-3 block">Reaction Distribution (Tracking-only)</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-secondary border border-secondary rounded-sm overflow-hidden">
+              <div className="bg-surface p-2.5 sm:p-3 text-center">
+                <Label className="block mb-1">Mean</Label>
+                <Mono className="text-xs sm:text-sm font-medium">{formatDuration(stats.meanReaction)}</Mono>
+              </div>
+              <div className="bg-surface p-2.5 sm:p-3 text-center">
+                <Label className="block mb-1">Median</Label>
+                <Mono className="text-xs sm:text-sm font-medium">{formatDuration(stats.medianReaction)}</Mono>
+              </div>
+              <div className="bg-surface p-2.5 sm:p-3 text-center">
+                <Label className="block mb-1">P90</Label>
+                <Mono className="text-xs sm:text-sm font-medium">{formatDuration(stats.p90Reaction)}</Mono>
+              </div>
+              <div className="bg-surface p-2.5 sm:p-3 text-center">
+                <Label className="block mb-1">Samples</Label>
+                <Mono className="text-xs sm:text-sm font-medium">{stats.sampleCount}</Mono>
+              </div>
+            </div>
+            <div className="mt-2">
+              <Label>Tracking Games: {stats.count}</Label>
+            </div>
+          </div>
+
           {/* Heatmap Section */}
           <div>
             <Label className="mb-3 block">Positional Heatmap (Avg Time per Cell)</Label>
@@ -181,7 +284,7 @@ export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, gridSize, s
                   const showInlineValue = avg !== undefined && (fastRank || slowRank);
 
                   return (
-                    <div
+                    <divGAME LOGIC
                       key={idx}
                       className="relative"
                       style={{ backgroundColor: color }}

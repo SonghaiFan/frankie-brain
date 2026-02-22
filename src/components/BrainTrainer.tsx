@@ -2,11 +2,146 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calculator, Grid3X3 } from 'lucide-react';
 import { GameShell } from './GameShell';
-import { GameType, GameResult } from '../types';
+import { Difficulty, GameType, GameResult, MathOperation } from '../types';
 import SchulteGame from './games/SchulteGame';
 import MathGame from './games/MathGame';
 import { Card } from './ui/Card';
 import { Heading, Label, SubHeading, Text } from './ui/Typography';
+import { sanitizeSchulteConfig } from '../utils/schulteConfig';
+
+const HISTORY_STORAGE_KEY = 'brain-trainer-history';
+const HISTORY_MAX_ENTRIES = 300;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
+const isDifficulty = (value: unknown): value is Difficulty =>
+  value === 'easy' || value === 'medium' || value === 'hard';
+
+const isMathOperation = (value: unknown): value is MathOperation =>
+  value === '+' || value === '-' || value === '*' || value === '/';
+
+const sanitizeSchulteTrackingData = (value: unknown) => {
+  if (!isRecord(value)) return undefined;
+  const { grid, clicks, mousePath } = value;
+  if (!Array.isArray(grid) || !grid.every(item => Number.isInteger(item) && item > 0)) return undefined;
+  if (!Array.isArray(clicks) || !Array.isArray(mousePath)) return undefined;
+
+  const sanitizedClicks = clicks
+    .filter(isRecord)
+    .map(click => ({
+      number: click.number,
+      time: click.time,
+      cellIndex: click.cellIndex,
+      isError: click.isError
+    }))
+    .filter(
+      click =>
+        isFiniteNumber(click.number) &&
+        isFiniteNumber(click.time) &&
+        isFiniteNumber(click.cellIndex) &&
+        (click.isError === undefined || typeof click.isError === 'boolean')
+    )
+    .map(click => ({
+      number: click.number,
+      time: click.time,
+      cellIndex: click.cellIndex,
+      isError: click.isError
+    }));
+
+  const sanitizedMousePath = mousePath
+    .filter(isRecord)
+    .map(point => ({ x: point.x, y: point.y, t: point.t }))
+    .filter(point => isFiniteNumber(point.x) && isFiniteNumber(point.y) && isFiniteNumber(point.t))
+    .map(point => ({ x: point.x, y: point.y, t: point.t }));
+
+  return {
+    grid,
+    clicks: sanitizedClicks,
+    mousePath: sanitizedMousePath
+  };
+};
+
+const sanitizeMathTrackingData = (value: unknown) => {
+  if (!isRecord(value) || !Array.isArray(value.attempts)) return undefined;
+  const attempts = value.attempts
+    .filter(isRecord)
+    .map(attempt => ({
+      question: attempt.question,
+      operation: attempt.operation,
+      expected: attempt.expected,
+      input: attempt.input,
+      responseTime: attempt.responseTime,
+      isCorrect: attempt.isCorrect,
+      at: attempt.at
+    }))
+    .filter(
+      attempt =>
+        typeof attempt.question === 'string' &&
+        isMathOperation(attempt.operation) &&
+        isFiniteNumber(attempt.expected) &&
+        (attempt.input === null || isFiniteNumber(attempt.input)) &&
+        isFiniteNumber(attempt.responseTime) &&
+        typeof attempt.isCorrect === 'boolean' &&
+        isFiniteNumber(attempt.at)
+    )
+    .map(attempt => ({
+      question: attempt.question,
+      operation: attempt.operation,
+      expected: attempt.expected,
+      input: attempt.input,
+      responseTime: attempt.responseTime,
+      isCorrect: attempt.isCorrect,
+      at: attempt.at
+    }));
+
+  return { attempts };
+};
+
+const sanitizeGameResult = (value: unknown): GameResult | null => {
+  if (!isRecord(value)) return null;
+  if (typeof value.id !== 'string') return null;
+  if (value.gameType !== 'schulte' && value.gameType !== 'math') return null;
+  if (!isFiniteNumber(value.score) || !isFiniteNumber(value.mistakes) || !isFiniteNumber(value.date)) {
+    return null;
+  }
+
+  const base: GameResult = {
+    id: value.id,
+    gameType: value.gameType,
+    score: value.score,
+    mistakes: value.mistakes,
+    date: value.date
+  };
+
+  if (value.gameType === 'schulte') {
+    if (!isFiniteNumber(value.gridSize) || value.gridSize <= 0) return null;
+    base.gridSize = value.gridSize;
+    if (value.presetId !== undefined) {
+      if (typeof value.presetId !== 'string') return null;
+      base.presetId = value.presetId;
+    }
+    if (value.schulteConfig !== undefined) {
+      const schulteConfig = sanitizeSchulteConfig(value.schulteConfig);
+      if (!schulteConfig) return null;
+      base.schulteConfig = schulteConfig;
+    }
+    const trackingData = sanitizeSchulteTrackingData(value.trackingData);
+    if (trackingData) base.trackingData = trackingData;
+  }
+
+  if (value.gameType === 'math') {
+    if (!isDifficulty(value.difficulty)) return null;
+    base.difficulty = value.difficulty;
+    const mathTrackingData = sanitizeMathTrackingData(value.mathTrackingData);
+    if (mathTrackingData) base.mathTrackingData = mathTrackingData;
+  }
+
+  return base;
+};
 
 export default function BrainTrainer() {
   const [activeGame, setActiveGame] = useState<GameType | null>(null);
@@ -16,20 +151,38 @@ export default function BrainTrainer() {
 
   // Load history
   useEffect(() => {
-    const saved = localStorage.getItem('brain-trainer-history');
-    if (saved) {
-      try { setHistory(JSON.parse(saved)); } catch (e) {}
+    const saved = localStorage.getItem(HISTORY_STORAGE_KEY);
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed)) {
+        setHistory([]);
+        return;
+      }
+      const sanitized = parsed
+        .map(sanitizeGameResult)
+        .filter((item): item is GameResult => item !== null)
+        .slice(0, HISTORY_MAX_ENTRIES);
+      setHistory(sanitized);
+    } catch (e) {
+      setHistory([]);
     }
   }, []);
 
   // Save history
   useEffect(() => {
-    localStorage.setItem('brain-trainer-history', JSON.stringify(history));
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history.slice(0, HISTORY_MAX_ENTRIES)));
   }, [history]);
 
   const addResult = (result: GameResult) => {
-    setHistory(prev => [result, ...prev]);
+    setHistory(prev => [result, ...prev].slice(0, HISTORY_MAX_ENTRIES));
   };
+
+  const clearSchultePresetData = useCallback((presetId: string) => {
+    setHistory(prev =>
+      prev.filter(item => !(item.gameType === 'schulte' && item.presetId === presetId))
+    );
+  }, []);
 
   const getAudioGraph = useCallback(() => {
     const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext;
@@ -169,6 +322,7 @@ export default function BrainTrainer() {
                 playSound={playSound} 
                 history={history.filter(h => h.gameType === 'schulte')} 
                 onComplete={addResult}
+                onClearSchultePresetData={clearSchultePresetData}
               />
             ) : (
               <MathGame 
