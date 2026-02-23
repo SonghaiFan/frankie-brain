@@ -11,15 +11,23 @@ export interface HistoryPoint {
   value: number;
 }
 
+export interface HistoryReferenceLine {
+  value: number;
+  label: string;
+  color?: string;
+  dashArray?: string;
+}
+
 interface HistoryStepChartProps {
   data: HistoryPoint[];
   formatValue: (value: number) => string;
   seriesLabel: string;
+  referenceLines?: HistoryReferenceLine[];
 }
 
 const CHART_MARGIN = { top: 10, right: 10, bottom: 10, left: 10 };
 
-export const HistoryStepChart: React.FC<HistoryStepChartProps> = ({ data, formatValue, seriesLabel }) => {
+export const HistoryStepChart: React.FC<HistoryStepChartProps> = ({ data, formatValue, seriesLabel, referenceLines = [] }) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const areaGradientId = useId().replace(/:/g, '');
 
@@ -37,8 +45,10 @@ export const HistoryStepChart: React.FC<HistoryStepChartProps> = ({ data, format
           const innerWidth = Math.max(width - CHART_MARGIN.left - CHART_MARGIN.right, 1);
           const innerHeight = Math.max(height - CHART_MARGIN.top - CHART_MARGIN.bottom, 1);
           const values = data.map(d => d.value);
-          const minValue = Math.min(...values);
-          const maxValue = Math.max(...values);
+          const lineValues = referenceLines.map(line => line.value).filter(value => Number.isFinite(value));
+          const allValues = lineValues.length ? [...values, ...lineValues] : values;
+          const minValue = Math.min(...allValues);
+          const maxValue = Math.max(...allValues);
           const span = maxValue - minValue;
           const pad = span > 0 ? span * 0.12 : Math.max(Math.abs(maxValue) * 0.1, 1);
 
@@ -109,6 +119,33 @@ export const HistoryStepChart: React.FC<HistoryStepChartProps> = ({ data, format
                     strokeDasharray="2 6"
                     pointerEvents="none"
                   />
+                  {referenceLines.map((line, idx) => {
+                    const y = yScale(line.value);
+                    if (!Number.isFinite(y) || y < 0 || y > innerHeight) return null;
+                    const color = line.color ?? '#002FA7';
+                    return (
+                      <React.Fragment key={`reference-line-${idx}-${line.label}`}>
+                        <Line
+                          from={{ x: 0, y }}
+                          to={{ x: innerWidth, y }}
+                          stroke={color}
+                          strokeWidth={1.25}
+                          strokeDasharray={line.dashArray ?? '2 3'}
+                          pointerEvents="none"
+                        />
+                        <text
+                          x={innerWidth - 2}
+                          y={Math.max(10, y - 4)}
+                          textAnchor="end"
+                          fill={color}
+                          fontSize={10}
+                          fontWeight={600}
+                        >
+                          {line.label}
+                        </text>
+                      </React.Fragment>
+                    );
+                  })}
                   <AreaClosed
                     data={points}
                     x={d => d.x}

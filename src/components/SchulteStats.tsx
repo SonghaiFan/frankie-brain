@@ -52,6 +52,19 @@ export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, roundEvents
     [gridHistory]
   );
 
+  const historyAverageLine = useMemo(() => {
+    if (!historyData.length) return [];
+    const average = historyData.reduce((sum, item) => sum + item.value, 0) / historyData.length;
+    return [
+      {
+        value: average,
+        label: `AVG ${average.toFixed(2)}s`,
+        color: '#002FA7',
+        dashArray: '2 3'
+      }
+    ];
+  }, [historyData]);
+
   const roundOutcome = useMemo(() => {
     const fallbackLegacyKey = getSchulteConfigKey(createDefaultSchulteConfig(gridSize));
     const scoped = roundEvents.filter(event => {
@@ -197,6 +210,7 @@ export const SchulteStats: React.FC<SchulteStatsProps> = ({ history, roundEvents
             data={historyData}
             formatValue={value => `${value.toFixed(2)}s`}
             seriesLabel="Time"
+            referenceLines={historyAverageLine}
           />
         </div>
       </div>
