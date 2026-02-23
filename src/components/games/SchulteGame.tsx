@@ -1228,7 +1228,7 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
                     ${gridSize >= 8 ? 'text-sm sm:text-lg' : gridSize >= 6 ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl'}
                   `}
                 >
-                  {getSymbolLabel(num)}
+                 {getSymbolLabel(num)}
                 </button>
               );
             })}

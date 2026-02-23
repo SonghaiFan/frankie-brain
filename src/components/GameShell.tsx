@@ -17,7 +17,7 @@ export const GameShell: React.FC<GameShellProps> = ({
   soundEnabled, 
   setSoundEnabled 
 }) => (
-  <div className="min-h-[100dvh] bg-[var(--color-bg-app)] text-ink font-sans flex flex-col items-center justify-start sm:justify-center p-2 sm:p-4 selection:bg-primary selection:text-white">
+  <div className="min-h-[100dvh] bg-[var(--color-bg-app)] text-ink font-sans flex flex-col items-center justify-start sm:justify-center p-2 sm:p-4 selection:bg-primary selection:text-white select-none">
     <div className="w-full max-w-md mx-auto relative flex flex-col h-[calc(100dvh-1rem)] sm:h-[85vh] sm:max-h-[800px]">
       
       {/* Header */}
