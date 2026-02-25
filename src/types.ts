@@ -1,8 +1,8 @@
 export type GameType = 'schulte' | 'math';
 export type Difficulty = 'easy' | 'medium' | 'hard';
-export type SchulteTrainingMode = 'classic' | 'targeted';
+export type SchulteTrainingMode = 'default' | 'targeted';
 export type SchulteTableType = 'digits' | 'letters' | 'gorbov-schulte';
-export type SchulteTableStyle = 'classic' | 'round' | 'colored' | 'voronoi';
+export type SchulteTableStyle = 'grid' | 'round' | 'colored' | 'voronoi';
 export type SchulteSymbolOrder = 'direct' | 'reverse' | 'random';
 export type SchulteRoundStatus = 'completed' | 'abandoned';
 export type SchulteRoundReason = 'finished' | 'reset' | 'exit';

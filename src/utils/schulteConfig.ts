@@ -11,13 +11,13 @@ const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
 
 export const isSchulteTrainingMode = (value: unknown): value is SchulteTrainingMode =>
-  value === 'classic' || value === 'targeted';
+  value === 'default' || value === 'targeted';
 
 export const isSchulteTableType = (value: unknown): value is SchulteTableType =>
   value === 'digits' || value === 'letters' || value === 'gorbov-schulte';
 
 export const isSchulteTableStyle = (value: unknown): value is SchulteTableStyle =>
-  value === 'classic' || value === 'round' || value === 'colored' || value === 'voronoi';
+  value === 'grid' || value === 'round' || value === 'colored' || value === 'voronoi';
 
 export const isSchulteSymbolOrder = (value: unknown): value is SchulteSymbolOrder =>
   value === 'direct' || value === 'reverse' || value === 'random';
@@ -25,11 +25,11 @@ export const isSchulteSymbolOrder = (value: unknown): value is SchulteSymbolOrde
 export const createDefaultSchulteConfig = (tableSize: number = DEFAULT_TABLE_SIZE): SchulteConfig => ({
   tableSize,
   tableType: 'digits',
-  tableStyle: 'classic',
+  tableStyle: 'grid',
   symbolOrder: 'direct',
   shuffleOnClick: false,
   showCenterDot: true,
-  trainingMode: 'classic'
+  trainingMode: 'default'
 });
 
 export const sanitizeSchulteConfig = (value: unknown): SchulteConfig | null => {
