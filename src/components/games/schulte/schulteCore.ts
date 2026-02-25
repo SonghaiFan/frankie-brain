@@ -1,5 +1,4 @@
 import {
-  SchulteConfig,
   SchultePreset,
   SchulteRoundEvent,
   SchulteSymbolOrder,
@@ -16,7 +15,7 @@ export const SCHULTE_TABLE_SIZES = [3, 4, 5, 6, 7, 8, 9] as const;
 export const BUILTIN_PRESETS: SchultePreset[] = [
   {
     id: 'builtin-default-5x5',
-    name: 'default',
+    name: 'Default',
     createdAt: 0,
     config: {
       tableSize: 5,
@@ -35,11 +34,11 @@ export const BUILTIN_PRESETS: SchultePreset[] = [
     config: {
       tableSize: 6,
       tableType: 'gorbov-schulte',
-      tableStyle: 'default',
+      tableStyle: 'grid',
       symbolOrder: 'direct',
       shuffleOnClick: false,
       showCenterDot: false,
-      trainingMode: 'grid'
+      trainingMode: 'default'
     }
   }
 ];

@@ -268,7 +268,7 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
           : 'Grid';
   const symbolOrderLabel =
     symbolOrder === 'reverse' ? 'Reverse' : symbolOrder === 'random' ? 'Random' : 'Direct';
-  const trainingLabel = trainingMode === 'targeted' ? 'Targeted' : 'default';
+  const trainingLabel = trainingMode === 'targeted' ? 'Targeted' : 'Default';
 
   useEffect(() => {
     activeRoundRef.current = {
@@ -437,13 +437,13 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
     }
   }, [trainingMode, canUseTargetedMode]);
 
-  const generatedefaultGrid = (size: number) => {
+  const generateDefaultGrid = (size: number) => {
     const count = size * size;
     return shuffleNumbers(Array.from({ length: count }, (_, i) => i + 1));
   };
 
   const generateTargetedGrid = (size: number) => {
-    const nums = generatedefaultGrid(size);
+    const nums = generateDefaultGrid(size);
     const count = size * size;
     const weakNumbers = Array.from(new Set(targetedNumbers.filter(number => number <= count)));
     const weakCells = Array.from(new Set(targetedCells.filter(index => index < count)));
@@ -516,7 +516,7 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
     } else {
       const nextGrid = trainingMode === 'targeted' && canUseTargetedMode
         ? generateTargetedGrid(gridSize)
-        : generatedefaultGrid(gridSize);
+        : generateDefaultGrid(gridSize);
       const nextOrder = buildSymbolOrder(totalSymbols, symbolOrder);
       setNumbers(nextGrid);
       setTargetOrder(nextOrder);
