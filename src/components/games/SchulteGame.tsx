@@ -12,6 +12,7 @@ import {
   SchultePreset,
   SchulteRoundEvent,
   SchulteSymbolOrder,
+  SchulteTableStyle,
   SchulteTableType,
   SchulteTrainingMode
 } from '../../types';
@@ -118,6 +119,179 @@ interface GorbovSymbol {
   tone: GorbovTone;
 }
 
+interface Point2D {
+  x: number;
+  y: number;
+}
+
+interface VoronoiCell {
+  pointsAttr: string;
+  centroid: Point2D;
+}
+
+const VORONOI_EPSILON = 1e-9;
+
+const normalizeTableStyle = (style: SchulteTableStyle): SchulteTableStyle =>
+  style === 'voronoi' ? 'voronoi' : 'classic';
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const createSeededRandom = (seed: number) => {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+};
+
+const createVoronoiSites = (count: number, seed: number) => {
+  const random = createSeededRandom(seed);
+  const columns = Math.ceil(Math.sqrt(count));
+  const rows = Math.ceil(count / columns);
+  const jitterX = 0.38 / columns;
+  const jitterY = 0.38 / rows;
+  const sites: Point2D[] = [];
+
+  for (let index = 0; index < count; index++) {
+    const col = index % columns;
+    const row = Math.floor(index / columns);
+    const x = (col + 0.5) / columns + (random() * 2 - 1) * jitterX;
+    const y = (row + 0.5) / rows + (random() * 2 - 1) * jitterY;
+    sites.push({
+      x: clamp(x, 0.02, 0.98),
+      y: clamp(y, 0.02, 0.98)
+    });
+  }
+
+  return sites;
+};
+
+const intersectSegmentWithLine = (
+  start: Point2D,
+  end: Point2D,
+  a: number,
+  b: number,
+  c: number
+): Point2D => {
+  const startValue = a * start.x + b * start.y - c;
+  const endValue = a * end.x + b * end.y - c;
+  const denom = startValue - endValue;
+  if (Math.abs(denom) < VORONOI_EPSILON) return end;
+  const t = startValue / denom;
+  return {
+    x: start.x + (end.x - start.x) * t,
+    y: start.y + (end.y - start.y) * t
+  };
+};
+
+const clipPolygonByHalfPlane = (polygon: Point2D[], a: number, b: number, c: number): Point2D[] => {
+  if (!polygon.length) return [];
+  const isInside = (point: Point2D) => a * point.x + b * point.y <= c + VORONOI_EPSILON;
+  const clipped: Point2D[] = [];
+
+  for (let i = 0; i < polygon.length; i++) {
+    const current = polygon[i];
+    const next = polygon[(i + 1) % polygon.length];
+    const currentInside = isInside(current);
+    const nextInside = isInside(next);
+
+    if (currentInside && nextInside) {
+      clipped.push(next);
+      continue;
+    }
+
+    if (currentInside && !nextInside) {
+      clipped.push(intersectSegmentWithLine(current, next, a, b, c));
+      continue;
+    }
+
+    if (!currentInside && nextInside) {
+      clipped.push(intersectSegmentWithLine(current, next, a, b, c));
+      clipped.push(next);
+    }
+  }
+
+  return clipped;
+};
+
+const createFallbackPolygon = (site: Point2D, pad = 0.03): Point2D[] => [
+  { x: clamp(site.x - pad, 0, 1), y: clamp(site.y - pad, 0, 1) },
+  { x: clamp(site.x + pad, 0, 1), y: clamp(site.y - pad, 0, 1) },
+  { x: clamp(site.x + pad, 0, 1), y: clamp(site.y + pad, 0, 1) },
+  { x: clamp(site.x - pad, 0, 1), y: clamp(site.y + pad, 0, 1) }
+];
+
+const polygonToPointsAttr = (points: Point2D[]) =>
+  points.map(point => `${(point.x * 100).toFixed(3)},${(point.y * 100).toFixed(3)}`).join(' ');
+
+const shrinkPolygonTowardPoint = (points: Point2D[], center: Point2D, factor: number) =>
+  points.map(point => ({
+    x: clamp(center.x + (point.x - center.x) * factor, 0, 1),
+    y: clamp(center.y + (point.y - center.y) * factor, 0, 1)
+  }));
+
+const computePolygonCentroid = (points: Point2D[], fallback: Point2D): Point2D => {
+  if (points.length < 3) return fallback;
+
+  let twiceArea = 0;
+  let xSum = 0;
+  let ySum = 0;
+
+  for (let i = 0; i < points.length; i++) {
+    const current = points[i];
+    const next = points[(i + 1) % points.length];
+    const cross = current.x * next.y - next.x * current.y;
+    twiceArea += cross;
+    xSum += (current.x + next.x) * cross;
+    ySum += (current.y + next.y) * cross;
+  }
+
+  if (Math.abs(twiceArea) < VORONOI_EPSILON) return fallback;
+
+  return {
+    x: clamp(xSum / (3 * twiceArea), 0.02, 0.98),
+    y: clamp(ySum / (3 * twiceArea), 0.02, 0.98)
+  };
+};
+
+const createVoronoiCells = (count: number, seed: number): VoronoiCell[] => {
+  if (count <= 0) return [];
+  const sites = createVoronoiSites(count, seed);
+  const shrinkFactor = count >= 64 ? 0.985 : count >= 36 ? 0.98 : 0.975;
+  const bounds: Point2D[] = [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+    { x: 1, y: 1 },
+    { x: 0, y: 1 }
+  ];
+
+  return sites.map((site, index) => {
+    let polygon = [...bounds];
+
+    for (let otherIndex = 0; otherIndex < sites.length; otherIndex++) {
+      if (index === otherIndex) continue;
+      const other = sites[otherIndex];
+      const a = other.x - site.x;
+      const b = other.y - site.y;
+      const c = (other.x * other.x + other.y * other.y - site.x * site.x - site.y * site.y) / 2;
+      polygon = clipPolygonByHalfPlane(polygon, a, b, c);
+      if (!polygon.length) break;
+    }
+
+    if (polygon.length < 3) polygon = createFallbackPolygon(site);
+
+    const gapPolygon = shrinkPolygonTowardPoint(polygon, site, shrinkFactor);
+    const centroid = computePolygonCentroid(gapPolygon, site);
+
+    return {
+      pointsAttr: polygonToPointsAttr(gapPolygon),
+      centroid
+    };
+  });
+};
+
 const shuffleNumbers = (values: number[]) => {
   const next = [...values];
   for (let i = next.length - 1; i > 0; i--) {
@@ -195,6 +369,7 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
   const [gridSize, setGridSize] = useState(5);
   const [trainingMode, setTrainingMode] = useState<SchulteTrainingMode>('classic');
   const [tableType, setTableType] = useState<SchulteTableType>('digits');
+  const [tableStyle, setTableStyle] = useState<SchulteTableStyle>('classic');
   const [symbolOrder, setSymbolOrder] = useState<SchulteSymbolOrder>('direct');
   const [shuffleOnClick, setShuffleOnClick] = useState(false);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
@@ -211,6 +386,7 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
   const [countdownValue, setCountdownValue] = useState(3);
   const [errorCell, setErrorCell] = useState<number | null>(null);
   const [successCell, setSuccessCell] = useState<number | null>(null);
+  const [boardLayoutSeed, setBoardLayoutSeed] = useState(1);
   const [customPresets, setCustomPresets] = useState<SchultePreset[]>(() => {
     try {
       const raw = localStorage.getItem(SCHULTE_PRESETS_KEY);
@@ -282,13 +458,13 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
     () => ({
       tableSize: gridSize,
       tableType,
-      tableStyle: 'classic',
+      tableStyle,
       symbolOrder,
       shuffleOnClick,
       showCenterDot: false,
       trainingMode
     }),
-    [gridSize, shuffleOnClick, symbolOrder, tableType, trainingMode]
+    [gridSize, shuffleOnClick, symbolOrder, tableStyle, tableType, trainingMode]
   );
   const currentConfigKey = useMemo(() => getSchulteConfigKey(currentConfig), [currentConfig]);
   const activePreset = useMemo(() => {
@@ -304,6 +480,7 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
   const applyConfig = (config: SchulteConfig) => {
     setGridSize(Math.min(config.tableSize, 9));
     setTableType(config.tableType);
+    setTableStyle(normalizeTableStyle(config.tableStyle));
     setSymbolOrder(config.symbolOrder);
     setShuffleOnClick(config.shuffleOnClick);
     setTrainingMode(config.trainingMode);
@@ -374,6 +551,11 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
     [currentConfigKey, gridSize, history]
   );
   const totalSymbols = gridSize * gridSize;
+  const isVoronoiStyle = tableStyle === 'voronoi';
+  const voronoiCells = useMemo(
+    () => (isVoronoiStyle ? createVoronoiCells(totalSymbols, boardLayoutSeed) : []),
+    [boardLayoutSeed, isVoronoiStyle, totalSymbols]
+  );
   const currentTarget = targetOrder[currentStep] ?? null;
   const gorbovSymbolById = useMemo(
     () => new Map(gorbovSymbols.map(item => [item.id, item])),
@@ -393,6 +575,7 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
       : tableType === 'letters'
         ? 'Letters'
         : 'Digits';
+  const tableStyleLabel = tableStyle === 'voronoi' ? 'Voronoi' : 'Grid';
   const symbolOrderLabel =
     symbolOrder === 'reverse' ? 'Reverse' : symbolOrder === 'random' ? 'Random' : 'Direct';
   const trainingLabel = trainingMode === 'targeted' ? 'Targeted' : 'Classic';
@@ -452,6 +635,7 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
       return (
         config.tableSize === gridSize &&
         config.tableType === tableType &&
+        normalizeTableStyle(config.tableStyle) === normalizeTableStyle(tableStyle) &&
         config.symbolOrder === symbolOrder &&
         config.shuffleOnClick === shuffleOnClick
       );
@@ -461,7 +645,7 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
     if (!lastResult || !matches(lastResult)) return base;
     const exists = base.some(item => item.id === lastResult.id);
     return exists ? base : [lastResult, ...base];
-  }, [gridSize, history, lastResult, shuffleOnClick, symbolOrder, tableType]);
+  }, [gridSize, history, lastResult, shuffleOnClick, symbolOrder, tableStyle, tableType]);
 
   // Stats
   const stats = useMemo(() => {
@@ -658,6 +842,7 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
     setCountdownValue(3);
     setErrorCell(null);
     setSuccessCell(null);
+    setBoardLayoutSeed(prev => prev + 1);
     setGameState('countdown');
     
     // Reset tracking
@@ -920,6 +1105,10 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
                   {tableTypeLabel}
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-full border border-secondary bg-surface px-2 py-1 text-[10px] uppercase tracking-wider text-ink-light">
+                  <Grid3X3 className="h-3 w-3" />
+                  {tableStyleLabel}
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-secondary bg-surface px-2 py-1 text-[10px] uppercase tracking-wider text-ink-light">
                   <ArrowUpDown className="h-3 w-3" />
                   {symbolOrderLabel}
                 </span>
@@ -1002,6 +1191,33 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
                         }`}
                       >
                         Gorbov
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="mb-2 block text-center">
+                      <span className="inline-flex items-center gap-1">
+                        <Grid3X3 className="h-3.5 w-3.5" />
+                        Table Style
+                      </span>
+                    </Label>
+                    <div className="inline-flex w-full items-center rounded-full border border-secondary bg-secondary p-0.5">
+                      <button
+                        onClick={() => setTableStyle('classic')}
+                        className={`inline-flex flex-1 items-center justify-center rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                          tableStyle !== 'voronoi' ? 'bg-surface text-ink shadow-sm' : 'text-ink-light hover:text-ink'
+                        }`}
+                      >
+                        Grid
+                      </button>
+                      <button
+                        onClick={() => setTableStyle('voronoi')}
+                        className={`inline-flex flex-1 items-center justify-center rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                          tableStyle === 'voronoi' ? 'bg-surface text-ink shadow-sm' : 'text-ink-light hover:text-ink'
+                        }`}
+                      >
+                        Voronoi
                       </button>
                     </div>
                   </div>
@@ -1195,43 +1411,100 @@ export default function SchulteGame({ playSound, history, onComplete, onClearSch
           <div 
             ref={containerRef}
             onPointerMove={handlePointerMove}
-            className={`w-full h-full grid ${gridSize >= 8 ? 'gap-px' : 'gap-1'} bg-secondary border border-secondary transition-[filter,opacity,transform] duration-[var(--motion-normal)] ease-[var(--ease-standard)]
+            className={`${isVoronoiStyle ? 'w-full h-full relative bg-secondary border border-secondary overflow-hidden' : `w-full h-full grid ${gridSize >= 8 ? 'gap-px' : 'gap-1'} bg-secondary border border-secondary`} transition-[filter,opacity,transform] duration-[var(--motion-normal)] ease-[var(--ease-standard)]
               ${gameState === 'countdown' ? 'blur-md opacity-40 scale-95' : 'blur-0 opacity-100 scale-100'}
             `}
-            style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
+            style={isVoronoiStyle ? undefined : { gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
           >
-            {numbers.map((num, index) => {
-              const isError = errorCell === num;
-              const isSuccess = successCell === num;
-              const isGorbov = tableType === 'gorbov-schulte';
-              const gorbovSymbol = gorbovSymbolById.get(num);
-              const isGorbovBlack = isGorbov && gorbovSymbol?.tone === 'black';
+            {isVoronoiStyle ? (
+              <svg
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                className="h-full w-full touch-manipulation"
+                style={{ pointerEvents: gameState === 'countdown' ? 'none' : 'auto' }}
+              >
+                {numbers.map((num, index) => {
+                  const cell = voronoiCells[index];
+                  if (!cell) return null;
 
-              return (
-                <button
-                  key={num}
-                  onPointerDown={() => handleCellClick(num, index)}
-                  disabled={gameState === 'countdown'}
-                  className={`
-                    ${
-                      isError
-                        ? 'bg-[var(--color-error)] text-white'
-                        : isSuccess
-                          ? 'bg-primary text-white'
-                          : isGorbovBlack
-                            ? 'bg-black text-white hover:brightness-95 active:brightness-90'
-                            : isGorbov
-                              ? 'bg-surface text-ink hover:bg-secondary active:brightness-95'
-                                : 'bg-surface hover:bg-secondary text-ink active:brightness-95'
-                    }
-                    font-medium flex items-center justify-center transition-colors touch-manipulation
-                    ${gridSize >= 8 ? 'text-sm sm:text-lg' : gridSize >= 6 ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl'}
-                  `}
-                >
-                 {getSymbolLabel(num)}
-                </button>
-              );
-            })}
+                  const isError = errorCell === num;
+                  const isSuccess = successCell === num;
+                  const isGorbov = tableType === 'gorbov-schulte';
+                  const gorbovSymbol = gorbovSymbolById.get(num);
+                  const isGorbovBlack = isGorbov && gorbovSymbol?.tone === 'black';
+                  const fillColor = isError
+                    ? 'var(--color-error)'
+                    : isSuccess
+                      ? 'var(--color-primary)'
+                      : isGorbovBlack
+                        ? '#000000'
+                        : 'var(--color-surface)';
+                  const textColor = isError || isSuccess || isGorbovBlack ? '#ffffff' : 'var(--color-ink)';
+                  const fontSize = gridSize >= 8 ? 3.7 : gridSize >= 6 ? 4.6 : 5.5;
+
+                  return (
+                    <g
+                      key={num}
+                      onPointerDown={() => handleCellClick(num, index)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <polygon
+                        points={cell.pointsAttr}
+                        fill={fillColor}
+                        stroke="var(--color-secondary)"
+                        strokeWidth={0.45}
+                        vectorEffect="non-scaling-stroke"
+                        style={{ transition: 'fill var(--motion-fast) var(--ease-standard)' }}
+                      />
+                      <text
+                        x={(cell.centroid.x * 100).toFixed(3)}
+                        y={(cell.centroid.y * 100).toFixed(3)}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fontSize={fontSize}
+                        fontWeight="600"
+                        fill={textColor}
+                        style={{ userSelect: 'none', pointerEvents: 'none' }}
+                      >
+                        {getSymbolLabel(num)}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+            ) : (
+              numbers.map((num, index) => {
+                const isError = errorCell === num;
+                const isSuccess = successCell === num;
+                const isGorbov = tableType === 'gorbov-schulte';
+                const gorbovSymbol = gorbovSymbolById.get(num);
+                const isGorbovBlack = isGorbov && gorbovSymbol?.tone === 'black';
+                const colorStateClass = isError
+                  ? 'bg-[var(--color-error)] text-white'
+                  : isSuccess
+                    ? 'bg-primary text-white'
+                    : isGorbovBlack
+                      ? 'bg-black text-white hover:brightness-95 active:brightness-90'
+                      : isGorbov
+                        ? 'bg-surface text-ink hover:bg-secondary active:brightness-95'
+                        : 'bg-surface hover:bg-secondary text-ink active:brightness-95';
+
+                return (
+                  <button
+                    key={num}
+                    onPointerDown={() => handleCellClick(num, index)}
+                    disabled={gameState === 'countdown'}
+                    className={`
+                      ${colorStateClass}
+                      font-medium flex items-center justify-center transition-colors touch-manipulation
+                      ${gridSize >= 8 ? 'text-sm sm:text-lg' : gridSize >= 6 ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl'}
+                    `}
+                  >
+                    {getSymbolLabel(num)}
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
       </div>

@@ -17,7 +17,7 @@ export const isSchulteTableType = (value: unknown): value is SchulteTableType =>
   value === 'digits' || value === 'letters' || value === 'gorbov-schulte';
 
 export const isSchulteTableStyle = (value: unknown): value is SchulteTableStyle =>
-  value === 'classic' || value === 'round' || value === 'colored';
+  value === 'classic' || value === 'round' || value === 'colored' || value === 'voronoi';
 
 export const isSchulteSymbolOrder = (value: unknown): value is SchulteSymbolOrder =>
   value === 'direct' || value === 'reverse' || value === 'random';
