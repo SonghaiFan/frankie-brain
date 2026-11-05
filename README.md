@@ -1,33 +1,39 @@
-![Frankie Brain — current product banner](docs/readme/banner.png)
+![Frankie Brain](docs/readme/banner.png)
 
 # Frankie Brain
 
-Browser-based Schulte grid and quick-math training, with local history, configurable practice and replay.
+Short Schulte-grid and arithmetic sessions for practicing attention, speed and accuracy.
 
-## Features
+**Web** · [iOS version](https://github.com/SonghaiFan/frankie-brain-ios) · [Guide](docs/guide.md) · [Run locally](#run-locally)
 
-- Practice peripheral attention with configurable Schulte grids, symbols and ordering.
-- Train arithmetic with timed Quick Math sessions.
-- Review results, history charts and Schulte replays stored in this browser.
+## What it does
 
-## Getting started
+- Practice attention with configurable Schulte grids, symbols and ordering.
+- Work through timed Quick Math sessions.
+- Review local history, result charts and Schulte replays.
+
+## Run locally
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite. The training UI does not require a model API key.
+Open the local URL printed by Vite. Training does not require a model API key.
 
-## Project notes
+## Before you start
 
-Built with React, TypeScript, Vite and Tailwind CSS. Browser storage is local to this origin; histories do not automatically transfer between addresses or to the native iOS app.
+History stays in this browser and on this origin. It does not automatically transfer to another address or to the iOS version.
 
-## Development
+## For developers
 
 ```sh
 npm run lint
 npm run build
 ```
 
-Banner sources and update instructions: [README artwork](docs/readme/README.md).
+[Project guide](docs/guide.md) · [Artwork](docs/readme/README.md)
+
+---
+
+Made by [Songhai Fan](https://github.com/SonghaiFan) · A Frankie project
