@@ -2,6 +2,8 @@
 
 # Frankie Brain
 
+[English](README.md) · [简体中文](README.zh-CN.md)
+
 Short Schulte-grid and arithmetic sessions for practicing attention, speed and accuracy.
 
 **Web** · [iOS version](https://github.com/SonghaiFan/frankie-brain-ios) · [Guide](docs/guide.md) · [Run locally](#run-locally)
