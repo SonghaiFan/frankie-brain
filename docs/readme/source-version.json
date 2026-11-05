@@ -1,0 +1,15 @@
+{
+  "repository": "frankie-brain",
+  "source_commit": "ec30c1379b4dbcdd9950c97293715324ddcb5f3c",
+  "captured_on": "2026-11-05",
+  "source_state": "Current local working tree; existing uncommitted app edits were included where present.",
+  "materials": [
+    {
+      "file": "assets/grid.png",
+      "kind": "verified current app material",
+      "note": "Approved live-UI preview from this session; current app was re-opened and checked against it.",
+      "captured_on": "2026-11-05"
+    }
+  ],
+  "icon": "assets/icon.svg"
+}

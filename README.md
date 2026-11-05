@@ -1,20 +1,33 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+![Frankie Brain — current product banner](docs/readme/banner.png)
 
-# Run and deploy your AI Studio app
+# Frankie Brain
 
-This contains everything you need to run your app locally.
+Browser-based Schulte grid and quick-math training, with local history, configurable practice and replay.
 
-View your app in AI Studio: https://ai.studio/apps/3ed490c3-9177-4ecb-ba14-32d5cb49cbf7
+## Features
 
-## Run Locally
+- Practice peripheral attention with configurable Schulte grids, symbols and ordering.
+- Train arithmetic with timed Quick Math sessions.
+- Review results, history charts and Schulte replays stored in this browser.
 
-**Prerequisites:**  Node.js
+## Getting started
 
+```sh
+npm ci
+npm run dev
+```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Open the local URL printed by Vite. The training UI does not require a model API key.
+
+## Project notes
+
+Built with React, TypeScript, Vite and Tailwind CSS. Browser storage is local to this origin; histories do not automatically transfer between addresses or to the native iOS app.
+
+## Development
+
+```sh
+npm run lint
+npm run build
+```
+
+Banner sources and update instructions: [README artwork](docs/readme/README.md).

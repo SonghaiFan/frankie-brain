@@ -1,0 +1,23 @@
+{
+  "title": "Brain",
+  "tagline": "A little practice. A clearer mind.",
+  "category": "Focus / Mental training",
+  "layout": "grid",
+  "assets": [
+    {
+      "src": "assets/grid.png",
+      "fit": "contain"
+    }
+  ],
+  "signature": "assets/frankie.svg",
+  "icon": "assets/icon.svg",
+  "description": "The actual 5 by 5 Schulte training grid and original Brain app icon.",
+  "provenance": [
+    {
+      "file": "assets/grid.png",
+      "kind": "verified current app material",
+      "note": "Approved live-UI preview from this session; current app was re-opened and checked against it.",
+      "captured_on": "2026-11-05"
+    }
+  ]
+}
