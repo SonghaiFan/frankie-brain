@@ -70,3 +70,8 @@ New captures from the real deployed UI on 2026-11-06:
 These four files are copied explicitly by `build.py`; changing `project.json` alone does not change the new narrative/gallery. `modules.png` and `demo.gif` remain existing authentic app captures. If replacing media or adding a feature story, update `build.py`, bilingual captions and this table together. Never capture private history. / 新页面主图与画廊由构建器明确配置，替换时同步双语说明和此表。
 
 `site/AUDIT.md` records the source paths and concept reference. Recheck references when changing a claim; the page describes practice tasks, not measured IQ or health benefits. / 源码及参考资料记录于审计文件，勿把练习成绩写成智商或健康效果。
+
+
+## Signature wordmark
+
+Use the approved `docs/readme/assets/frankie.svg` for the intro header, copied to `media/signature.svg`. Keep the product name separate; do not replace Frankie with a typed font. Guitar tints the SVG via a CSS mask to match the instrument palette. The app uses the identical approved `public/frankie-signature.svg`. Refresh screenshots if the visible app header changes.

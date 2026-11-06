@@ -3,3 +3,6 @@
 /* Crop the genuine wide app capture in CSS; the original image remains available. */
 .hero-screen{position:relative;aspect-ratio:1.05}.hero-screen img{position:absolute;width:270%;max-width:none;height:auto;left:50%;top:50%;transform:translate(-50%,-50%)}
 @media(max-width:760px){.hero-screen{aspect-ratio:1.05;width:100%;max-width:550px}}
+
+/* Approved signature is the wordmark; product and edition remain text. */
+.brand{display:inline-flex;align-items:center;gap:12px}.brand>img{display:block;width:100px;height:42px;object-fit:contain}.brand>strong{font-size:20px;font-weight:700}.brand>span{margin-left:0}@media(max-width:760px){.brand{gap:8px}.brand>img{width:82px;height:36px}.brand>strong{font-size:17px}.brand>span{font-size:9px}}
