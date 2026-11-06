@@ -47,3 +47,26 @@ If the branch or repository owner changes, update `project.json`, the workflow b
 ## App signature / 应用签名
 
 The app signature uses `public/frankie-signature.svg`, copied from the approved `docs/readme/assets/frankie.svg`. It links to this introduction page. / 应用签名使用已确认的系列 SVG，并链接到介绍页。
+
+## App-specific content and demo / 应用专属内容与演示
+
+The introduction now uses `site/content.json` for both languages; it does not turn the README feature list into the page. Keep English and Chinese entries together. / 介绍页使用独立双语内容，不再直接复制 README 功能列表。
+
+| Changed app area / 应用变化 | Update / 对应更新 |
+| --- | --- |
+| `src/index.css`, `src/components/ui/Typography.tsx`, `Button.tsx` | Match colors, typography and 4px button radius in `site/style.css`. The current tokens are Klein blue `#002FA7`, surface `#F4F4F4`, border `#E0E0E0`. / 同步真实设计语言。 |
+| `src/components/games/schulte/schulteCore.ts`, `SchulteBoard.tsx`, `src/components/games/SchulteGame.tsx` | Update the sequence/variant explanations in `content.json` and lightweight `demo.js` if the actual rules change. The demo is deliberately unsaved and has no session timer. / 规则变更时更新概念说明及不保存成绩的介绍演示。 |
+| `src/components/games/MathGame.tsx` | Update the 60-second duration, difficulty descriptions and missing-operand examples in `content.json`. / 同步时长、难度与缺项题示例。 |
+| `src/components/SchulteReplay.tsx`, `SchulteStats.tsx`, `MathStats.tsx` | Update replay speeds, analytics descriptions and the replay screenshot. / 同步回放速度与分析功能说明。 |
+| `src/components/BrainTrainer.tsx` storage | Update the browser/origin storage explanation if persistence or sync changes. / 存储或同步机制变化时更新说明。 |
+
+New captures from the real deployed UI on 2026-11-06:
+
+- `site/assets/schulte-current.png`: Schulte → Settings → Default. / 舒尔特默认设置。
+- `site/assets/grid-current.png`: Schulte → Advanced → 3 → close Advanced → Start → wait for countdown. Hero uses this image. / 3×3 真实练习，亦用作主图。
+- `site/assets/math-current.png`: Quick Math → Medium → Start (60s), before entering an answer. / 中等心算开始画面。
+- `site/assets/replay-current.png`: finish the 3×3 round → Replay. This is a walkthrough, not a benchmark. / 完成方格后打开回放，用时不作为性能参考。
+
+These four files are copied explicitly by `build.py`; changing `project.json` alone does not change the new narrative/gallery. `modules.png` and `demo.gif` remain existing authentic app captures. If replacing media or adding a feature story, update `build.py`, bilingual captions and this table together. Never capture private history. / 新页面主图与画廊由构建器明确配置，替换时同步双语说明和此表。
+
+`site/AUDIT.md` records the source paths and concept reference. Recheck references when changing a claim; the page describes practice tasks, not measured IQ or health benefits. / 源码及参考资料记录于审计文件，勿把练习成绩写成智商或健康效果。

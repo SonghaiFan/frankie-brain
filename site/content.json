@@ -1,0 +1,200 @@
+{
+  "en": {
+    "headline": "Schulte grids.\nQuick mental arithmetic.",
+    "intro": "Two small practice spaces: visual search with Schulte grids, and a minute of mental arithmetic.",
+    "open": "Open Brain",
+    "try": "Try a small grid",
+    "concept_title": "What is a Schulte grid?",
+    "concept": "A shuffled board turns a familiar sequence into a visual search task. In the default game, find 1, then 2, then 3, without skipping ahead. The clock stops when you find the final number; a wrong tap counts as a mistake.",
+    "demo_title": "Try the sequence",
+    "demo_note": "A 3 × 3 introduction, adapted from the app’s grid and ordering rules. This demo does not save a practice result.",
+    "next": "Find",
+    "reset": "New grid",
+    "done": "Sequence complete. Try a new grid or open the app.",
+    "wrong": "That is not the next number. Try again.",
+    "correct": "Found it. Next:",
+    "features_title": "Same task. Different ways to search.",
+    "features": [
+      [
+        "Make the board yours",
+        "Choose 3 × 3 through 9 × 9; switch digits to letters; use square, colored, circular or Voronoi cells. Direct, reverse and random orders change the sequence you must follow."
+      ],
+      [
+        "Switch between black and red",
+        "The Gorbov preset alternates matching values: black 1, red 1, black 2, red 2. This app’s rule is shown explicitly, so you do not have to guess which color comes next."
+      ],
+      [
+        "Keep useful settings",
+        "Save custom presets. Shuffle on click changes cell positions after a correct tap. Targeted mode becomes available once recorded rounds identify slower values and cells."
+      ]
+    ],
+    "math_title": "A minute of Quick Math.",
+    "math_intro": "Some questions ask for the result. Others hide an operand. Type the missing number; a correct answer advances automatically. There is no submit button.",
+    "math_examples": [
+      "12 + 7 = ?",
+      "18 − ? = 11",
+      "? × 6 = 42"
+    ],
+    "math_difficulty": [
+      [
+        "Easy",
+        "Addition and subtraction."
+      ],
+      [
+        "Medium",
+        "Adds multiplication."
+      ],
+      [
+        "Hard",
+        "Adds clean, whole-number division."
+      ]
+    ],
+    "math_note": "Each round lasts 60 seconds. The score is the number of correct answers; mistakes are recorded separately.",
+    "review_title": "See how the round unfolded.",
+    "review_intro": "A finish time tells only part of the story. Brain keeps the taps and timing needed to revisit your own sessions.",
+    "review": [
+      [
+        "Replay the search",
+        "Play, pause or scrub a recorded Schulte round at 0.5×, 1×, 2× or 4×. On pointer devices the replay can also show the recorded cursor path."
+      ],
+      [
+        "Read the patterns",
+        "Schulte Insights shows timing history, per-number reaction distributions and a spatial heatmap. Quick Math breaks attempts down by operation and response time."
+      ],
+      [
+        "Compare like with like",
+        "Look at best and average results for the selected settings. A 3 × 3 grid and a 9 × 9 grid are different tasks; faster is meaningful only with that context."
+      ]
+    ],
+    "workflow_title": "Your first round",
+    "steps": [
+      [
+        "Choose a module",
+        "Start with Schulte Grid or Quick Math."
+      ],
+      [
+        "Choose a task",
+        "Use Default for a 5 × 5 grid, or open Advanced. For arithmetic, choose Easy, Medium or Hard."
+      ],
+      [
+        "Play and review",
+        "Finish the sequence or the 60-second round, then check the result, replay or Insights."
+      ]
+    ],
+    "gallery_title": "Inside the current app",
+    "gallery_intro": "Real app screens, from choosing a module to reviewing a finished round.",
+    "start_title": "Open, practice, come back.",
+    "runtime": "The web app runs in your browser. No account or model API key is needed for either module. Results and presets are stored locally on this browser and origin; they do not sync with another device or the iOS edition.",
+    "research": "Treat the charts as a record of these tasks. A better practice score is not an IQ or health assessment. For the distinction between trained-task gains and broader transfer, see Owen et al.’s controlled study, <a href=\"https://www.nature.com/articles/nature09042\">Putting brain training to the test</a> (2010).",
+    "local": "Run locally",
+    "local_note": "Install dependencies, start Vite, then open the address it prints.",
+    "family": "Prefer a native version?",
+    "family_note": "Brain for iOS is the same app family, built for iPhone and iPad. Web history remains separate.",
+    "family_link": "Explore the iOS edition",
+    "maintain": "Screenshot & content update guide",
+    "source": "Source code",
+    "nav_concept": "The games",
+    "nav_use": "First round",
+    "nav_screens": "Screens",
+    "footer": "A Frankie project by Songhai Fan"
+  },
+  "zh": {
+    "headline": "舒尔特方格，\n还有快速心算。",
+    "intro": "两个小小的练习空间：用舒尔特方格做视觉搜索，用一分钟做心算。",
+    "open": "打开 Brain",
+    "try": "试一张小方格",
+    "concept_title": "什么是舒尔特方格？",
+    "concept": "打乱的方格把熟悉的顺序变成视觉搜索任务。默认玩法中，依次找到 1、2、3，不能跳过。找到最后一个数字时计时结束；点错会记录为一次失误。",
+    "demo_title": "试着按顺序找",
+    "demo_note": "这是根据应用方格和排序规则改编的 3 × 3 介绍演示，不会保存练习成绩。",
+    "next": "寻找",
+    "reset": "换一张方格",
+    "done": "顺序完成。换一张方格，或打开完整应用。",
+    "wrong": "这不是下一个数字，再试一次。",
+    "correct": "找到了，下一个：",
+    "features_title": "同一个任务，不同的搜索方式。",
+    "features": [
+      [
+        "调整方格",
+        "从 3 × 3 到 9 × 9，数字或字母，方形、着色、圆形或 Voronoi 单元。正序、倒序和随机顺序改变需要寻找的序列。"
+      ],
+      [
+        "在黑色和红色之间切换",
+        "Gorbov 预设交替寻找相同数值：黑 1、红 1、黑 2、红 2。这里明确说明应用自身采用的规则，不必猜测下一种颜色。"
+      ],
+      [
+        "保留顺手的设置",
+        "可保存自定义预设。开启点击后打乱，每次正确点击都会改变位置。记录足够轮次并识别较慢的数值和格子后，可使用针对性模式。"
+      ]
+    ],
+    "math_title": "一分钟 Quick Math。",
+    "math_intro": "有的题目求结果，有的题目隐藏一个运算数。输入缺失数字，正确后自动进入下一题，无需提交按钮。",
+    "math_examples": [
+      "12 + 7 = ?",
+      "18 − ? = 11",
+      "? × 6 = 42"
+    ],
+    "math_difficulty": [
+      [
+        "简单",
+        "加法和减法。"
+      ],
+      [
+        "中等",
+        "加入乘法。"
+      ],
+      [
+        "困难",
+        "加入结果为整数的除法。"
+      ]
+    ],
+    "math_note": "每轮 60 秒。分数是答对的题数，失误另外记录。",
+    "review_title": "回看这一轮是怎样完成的。",
+    "review_intro": "完成时间只是其中一部分。Brain 保存点击与计时，让你回看自己的练习过程。",
+    "review": [
+      [
+        "回放搜索过程",
+        "以 0.5×、1×、2× 或 4× 播放、暂停和拖动舒尔特回放。使用指针设备时，还可以查看已记录的光标轨迹。"
+      ],
+      [
+        "观察具体模式",
+        "舒尔特 Insights 展示历史用时、各数字的反应时间分布和空间热图。Quick Math 按运算类型和反应时间分析答题记录。"
+      ],
+      [
+        "比较相同的任务",
+        "查看当前设置下的最佳和平均结果。3 × 3 和 9 × 9 是不同任务，比较速度时应保留设置背景。"
+      ]
+    ],
+    "workflow_title": "你的第一轮",
+    "steps": [
+      [
+        "选择模块",
+        "从 Schulte Grid 或 Quick Math 开始。"
+      ],
+      [
+        "选择任务",
+        "Default 是 5 × 5 方格，也可展开 Advanced。心算则选择简单、中等或困难。"
+      ],
+      [
+        "练习并回顾",
+        "完成序列或 60 秒练习后，查看结果、回放或 Insights。"
+      ]
+    ],
+    "gallery_title": "看看当前应用",
+    "gallery_intro": "真实应用界面，从选择模块到回顾完成的练习。",
+    "start_title": "打开、练习，下次再回来。",
+    "runtime": "两个模块都直接在浏览器运行，无需账号或模型 API key。成绩和预设保存在此浏览器、此站点地址的本地存储中，不会同步到其他设备或 iOS 版本。",
+    "research": "图表记录的是这些具体任务。练习分数变好，不等同于智商或健康评估。关于任务内进步与更广泛迁移的区别，可阅读 Owen 等人的对照研究 <a href=\"https://www.nature.com/articles/nature09042\">Putting brain training to the test</a>（2010）。",
+    "local": "本地运行",
+    "local_note": "安装依赖并启动 Vite，然后打开终端给出的地址。",
+    "family": "想用原生版本？",
+    "family_note": "Brain iOS 是同系列应用，为 iPhone 和 iPad 构建；网页练习历史独立保存。",
+    "family_link": "了解 iOS 版本",
+    "maintain": "截图与内容更新指南",
+    "source": "源代码",
+    "nav_concept": "两个游戏",
+    "nav_use": "第一轮",
+    "nav_screens": "界面",
+    "footer": "Songhai Fan 的 Frankie 系列项目"
+  }
+}
