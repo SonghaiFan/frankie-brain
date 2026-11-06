@@ -54,7 +54,7 @@ export const GameShell: React.FC<GameShellProps> = ({
       {/* Footer Info */}
       <div className="mt-3 sm:mt-6 text-center h-6 sm:h-8 shrink-0">
         <p className="text-[10px] font-medium text-ink-lighter max-w-xs mx-auto uppercase tracking-widest">
-          A brain training game by <a href="https://songhai.one/" target="_blank" rel="noopener noreferrer" className="underline hover:text-ink transition-colors">songhaifan</a>
+          <a href="https://songhaifan.github.io/frankie-brain/" aria-label="About Frankie brain" style={{ display: "inline-flex", alignItems: "center", padding: "6px", color: "inherit",  }}><span aria-hidden="true" style={{ display: "block", width: 76, height: 26, backgroundColor: "currentColor", mask: "url(/frankie-signature.svg) center / contain no-repeat", WebkitMask: "url(/frankie-signature.svg) center / contain no-repeat" }} /></a>
         </p>
       </div>
 
