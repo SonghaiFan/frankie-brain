@@ -6,7 +6,7 @@
 
 Short Schulte-grid and arithmetic sessions for practicing attention, speed and accuracy.
 
-**Web** · [iOS version](https://github.com/SonghaiFan/frankie-brain-ios) · [Guide](docs/guide.md) · [Run locally](#run-locally)
+[Introduction](https://songhaifan.github.io/frankie-brain/) · **Web** · [iOS version](https://github.com/SonghaiFan/frankie-brain-ios) · [Guide](docs/guide.md) · [Run locally](#run-locally)
 
 ## What it does
 

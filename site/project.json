@@ -1,0 +1,67 @@
+{
+  "repository": "SonghaiFan/frankie-brain",
+  "branch": "main",
+  "pages_url": "https://songhaifan.github.io/frankie-brain/",
+  "kind": "online",
+  "app_url": "https://brain-training-game.vercel.app",
+  "vercel_project": "brain-training-game",
+  "accent": "#356bdb",
+  "tint": "#f2f6ff",
+  "category": {
+    "en": "Focus / Web",
+    "zh": "专注 / Web"
+  },
+  "steps": {
+    "en": [
+      "Choose a grid or Quick Math.",
+      "Set the difficulty and complete a short round.",
+      "Review your result and return to your practice history."
+    ],
+    "zh": [
+      "选择舒尔特方格或 Quick Math。",
+      "设置难度，完成一轮短练习。",
+      "查看成绩，回到练习历史。"
+    ]
+  },
+  "media": [
+    {
+      "src": "docs/readme/assets/grid.png",
+      "caption": {
+        "en": "The actual 5 by 5 Schulte training grid and original Brain app icon.",
+        "zh": "项目真实界面或原始素材。"
+      },
+      "crop": null,
+      "source_size": null
+    },
+    {
+      "src": "site/assets/modules.png",
+      "caption": {
+        "en": "Choose Schulte Grid or Quick Math.",
+        "zh": "选择舒尔特方格或快速算术。"
+      },
+      "captured_on": "2026-11-05",
+      "source_revision": "See docs/readme/source-version.json"
+    },
+    {
+      "src": "site/assets/settings.png",
+      "caption": {
+        "en": "Configure a Schulte session before starting.",
+        "zh": "开始前配置舒尔特练习。"
+      },
+      "captured_on": "2026-11-06"
+    },
+    {
+      "src": "site/assets/demo.gif",
+      "caption": {
+        "en": "Recorded module-to-session sequence.",
+        "zh": "实际录制的模块选择与练习启动流程。"
+      },
+      "captured_on": "2026-11-06",
+      "note": "Actual app frames; compressed and retimed for a short demonstration, not a performance measurement."
+    }
+  ],
+  "art_note": {
+    "en": "The actual 5 by 5 Schulte training grid and original Brain app icon.",
+    "zh": "素材来自项目当前界面与原始资源。"
+  }
+}

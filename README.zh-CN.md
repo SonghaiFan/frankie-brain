@@ -6,7 +6,7 @@
 
 用舒尔特方格与快速算术练习，训练注意力、速度和准确度。
 
-**Web** · [iOS 版](https://github.com/SonghaiFan/frankie-brain-ios) · [项目指南](docs/guide.md) · [本地运行](#本地运行)
+[介绍页](https://songhaifan.github.io/frankie-brain/zh/) · **Web** · [iOS 版](https://github.com/SonghaiFan/frankie-brain-ios) · [项目指南](docs/guide.md) · [本地运行](#本地运行)
 
 ## 可以做什么
 

@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Standalone introduction build
+/_site/
