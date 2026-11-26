@@ -11,13 +11,19 @@
   ],
   "signature": "assets/frankie.svg",
   "icon": "assets/icon.svg",
-  "description": "The actual 5 by 5 Schulte training grid and original Brain app icon.",
+  "description": "The actual Schulte grid with the approved rotated numeral Brain icon.",
   "provenance": [
     {
       "file": "assets/grid.png",
       "kind": "verified current app material",
       "note": "Approved live-UI preview from this session; current app was re-opened and checked against it.",
       "captured_on": "2026-11-05"
+    },
+    {
+      "file": "assets/icon.svg",
+      "kind": "user-approved brand icon",
+      "selected_on": "2026-11-25",
+      "geometry_source": "0eafb36448a3069ad79b495eb8095805e36615b68884a12d02238de010122ade"
     }
   ]
 }

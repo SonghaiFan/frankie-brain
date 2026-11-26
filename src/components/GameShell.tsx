@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Brain, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Volume2, VolumeX } from 'lucide-react';
 
 interface GameShellProps {
   title: string;
@@ -29,7 +29,7 @@ export const GameShell: React.FC<GameShellProps> = ({
             </button>
           ) : (
             <div className="w-8 h-8 bg-primary text-white rounded-[4px] flex items-center justify-center font-bold text-sm shadow-sm">
-              <Brain className="w-4 h-4" />
+              <img src="/frankie-brain-symbol-white.svg" alt="" aria-hidden="true" width="32" height="32" className="w-8 h-8" />
             </div>
           )}
           <h1 className="font-medium text-[11px] sm:text-sm tracking-[0.2em] uppercase text-ink-light truncate">{title}</h1>

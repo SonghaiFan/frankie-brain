@@ -6,3 +6,6 @@
 
 /* Approved signature is the wordmark; product and edition remain text. */
 .brand{display:inline-flex;align-items:center;gap:12px}.brand>img{display:block;width:100px;height:42px;object-fit:contain}.brand>strong{font-size:20px;font-weight:700}.brand>span{margin-left:0}@media(max-width:760px){.brand{gap:8px}.brand>img{width:82px;height:36px}.brand>strong{font-size:17px}.brand>span{font-size:9px}}
+
+/* Keep the symbol square; signature sizing does not apply to it. */
+.brand>img.brand-icon{width:32px;height:32px;flex:0 0 32px}
